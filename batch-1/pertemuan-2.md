@@ -692,6 +692,9 @@ Menurut W. Stallings [William Stallings, "Network and Internetwork Security," Pr
 Interruption adalah ancaman terhadap availability. Informasi dan data yang merupakan sistem komputer dirusak dan dihapus sehingga jika dibutuhkan, data atau informasi tersebut tidak lagi ada.⁸
 
 **Ilustrasi Interruption Attack:**
+
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/instrupsi.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │           INTERRUPTION ATTACK (Availability Threat)         │
@@ -749,6 +752,9 @@ Attack Condition:
 Interception adalah serangan jenis ini ditujukan terhadap aspek privacy dan authentication. Pihak yang tidak berwenang dapat mengakses informasi. Contoh: serangan ini pencurian data pengguna kartu kredit.⁹
 
 **Ilustrasi Interception Attack:**
+
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/2.2%20network%20security.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │         INTERCEPTION ATTACK (Privacy Threat)                │
@@ -810,6 +816,9 @@ Attacker dapat melihat:
 Modification adalah serangan jenis ini ditujukan terhadap aspek privacy, authentication, dan integrity. Pihak yang tidak berwenang dapat mengakses dan mengubah informasi.
 
 **Ilustrasi Modification Attack:**
+
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec2-3.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │        MODIFICATION ATTACK (Integrity Threat)               │
@@ -866,6 +875,9 @@ Attacker:
 Fabrication adalah seseorang yang tidak memiliki hak akses, memasukkan suatu objek palsu ke dalam sistem yang ada. Serangan jenis ini ditujukan terhadap aspek privacy, authentication, dan integrity.
 
 **Ilustrasi Fabrication Attack:**
+
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec-2-4.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │         FABRICATION ATTACK (Authentication Threat)          │
@@ -954,6 +966,9 @@ ATTACKER SENDS FAKE EMAIL:
 - Advanced techniques dan tools
 
 **Ilustrasi APT Attack Chain:**
+
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec-2-5.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │              ADVANCED PERSISTENT THREAT (APT)               │
