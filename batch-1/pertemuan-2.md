@@ -6102,6 +6102,54 @@ KEUNTUNGAN: ✓ FASTEST (2-5 seconds)
 ✓ Works when ICMP disabled
 ```
 
+**Windows Alternative untuk ARP-Scan:**
+```cmd
+# Windows Command Prompt (Native - No tools needed):
+# For Nmap method, download from: https://nmap.org/download.html
+
+# Method 1: ARP Scan (built-in Windows):
+arp -a
+# Lihat semua devices di network yang sudah cache
+# OUTPUT: IP Address, Physical Address (MAC), Type
+
+# Method 2: ARP Scan dengan target range (lebih aggressive):
+arp -s 192.168.1.1 ff-ff-ff-ff-ff-ff
+arp -a
+# Send ARP request ke broadcast address terlebih dahulu
+
+# Method 3: Gunakan Nmap di Windows (RECOMMENDED - sama seperti Linux):
+# ⬇️ DOWNLOAD: https://nmap.org/download/ (Windows installer)
+nmap -PR 192.168.1.0/24
+# -PR = ARP Ping scan (fastest untuk local network)
+
+# Lihat contoh output:
+nmap -PR 192.168.1.0/24
+# Output:
+# Nmap scan report for 192.168.1.1
+# Host is up (0.0012s latency).
+# MAC Address: AA:BB:CC:DD:EE:01 (Vendor Name)
+#
+# Nmap scan report for 192.168.1.100
+# Host is up (0.0015s latency).
+# MAC Address: AA:BB:CC:DD:EE:03 (HP Inc)
+
+# Method 4: PowerShell ARP Scan:
+Get-NetNeighbor -AddressFamily IPv4
+
+# Method 5: PowerShell dengan filter untuk subnet tertentu:
+$gateway = (Get-NetRoute | Where-Object {$_.DestinationPrefix -eq '0.0.0.0/0'} | Get-NetNextHop).IPAddress
+$subnet = $gateway.Substring(0, $gateway.LastIndexOf('.')) + '.0'
+foreach($i in 1..254) {
+    Test-Connection "$subnet.$i" -Count 1 -Quiet | If {$_} {"$subnet.$i is UP"}
+}
+
+KEUNTUNGAN WINDOWS ARP:
+✓ Built-in (no installation needed)
+✓ Fast for small networks
+✓ Works without additional tools
+✓ Shows MAC address immediately
+```
+
 #### **Method 2B. Netdiscover (ARP-based Alternative)**
 ```bash
 # Install netdiscover:
@@ -6158,6 +6206,57 @@ CATATAN PENTING - SYNTAX ERROR FIX:
 - REKOMENDASI: Gunakan arp-scan -l lebih cepat & reliable
 ```
 
+**Windows Alternative untuk Netdiscover:**
+```cmd
+# Windows - Network Discovery Options:
+
+# Option 1: Angry IP Scanner (GUI-based, recommended untuk Windows):
+# ⬇️ DOWNLOAD: https://angryip.org/download/ (Windows installer available)
+# Install & Launch -> Set range 192.168.1.1-255 -> Click Start
+# Live view dengan multithreading, shows hostname & port info
+
+# Option 2: Nmap dengan Netdiscover equivalent:
+# ⬇️ DOWNLOAD: https://nmap.org/download/ (if not already installed)
+nmap -sn 192.168.1.0/24
+# Shows all active hosts (same as netdiscover)
+
+# Option 3: PowerShell Network Scan (Windows native - no download needed):
+# Method 1 - Simple ping sweep:
+$subnet = "192.168.1"
+foreach($i in 1..254) {
+    if(Test-Connection "$subnet.$i" -Count 1 -Quiet) {
+        $ip = "$subnet.$i"
+        $hostname = ([System.Net.Dns]::GetHostByAddress($ip)).HostName
+        Write-Host "$ip - $hostname"
+    }
+}
+
+# Method 2 - Faster multi-threaded PowerShell:
+$subnet = "192.168.1"
+$jobs = @()
+foreach($i in 1..254) {
+    $job = Start-Job -ScriptBlock {
+        param($ip)
+        if(Test-Connection $ip -Count 1 -Quiet) {
+            Write-Output $ip
+        }
+    } -ArgumentList "$subnet.$i"
+    $jobs += $job
+}
+$results = $jobs | Wait-Job | Receive-Job
+$results | Sort-Object
+
+# Method 3 - Using netsh (built-in):
+netsh interface ip show address
+# Shows all local network interfaces (untuk reference)
+
+KEUNTUNGAN WINDOWS OPTIONS:
+✓ Angry IP Scanner = GUI + multi-threading (user-friendly)
+✓ Nmap -sn = same cross-platform approach
+✓ PowerShell = built-in, no additional tools
+✓ netsh = native Windows system command
+```
+
 #### **Method 2C. Nmap Ping Scan**
 ```bash
 # Ping dengan berbagai metode:
@@ -6194,6 +6293,56 @@ Nmap scan report for 192.168.1.150
 Host is up (0.0022s latency).
 ```
 
+**Windows Command Prompt untuk Nmap Ping Scan:**
+```cmd
+# Nmap syntax sama di Windows dan Linux (karena cross-platform)
+# ⬇️ DOWNLOAD NMAP: https://nmap.org/download/ (Windows installer)
+
+# ICMP Echo Request:
+nmap -PE 192.168.1.0/24
+
+# TCP SYN to port 80:
+nmap -PS80 192.168.1.0/24
+
+# ARP Ping (recommended untuk local network):
+nmap -PR 192.168.1.0/24
+
+# TCP ACK untuk bypass firewall rules:
+nmap -PA443 192.168.1.0/24
+
+# Combination - lebih comprehensive:
+nmap -PE -PS80,443 -PA80,443 -PR 192.168.1.0/24
+
+# Windows Native - Built-in alternative (tanpa Nmap):
+# Method 1: Simple ping sweep:
+for /l %i in (1,1,254) do ping -n 1 192.168.1.%i | find "Reply" && echo 192.168.1.%i is UP
+
+# Method 2: Advanced CMD batch file:
+@echo off
+setlocal enabledelayedexpansion
+for /l %%i in (1,1,254) do (
+    ping -n 1 -w 100 192.168.1.%%i >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo 192.168.1.%%i - Host UP
+    )
+)
+
+# Method 3: PowerShell (more elegant):
+$subnet = "192.168.1"
+1..254 | ForEach-Object {
+    $ip = "$subnet.$_"
+    if(Test-Connection $ip -Count 1 -Quiet -ErrorAction SilentlyContinue) {
+        Write-Host "Host UP: $ip"
+    }
+}
+
+KEUNTUNGAN WINDOWS NATIVE:
+✓ No additional tools required
+✓ Built-in ping command
+✓ PowerShell faster dengan parallelization
+✓ Batch scripts dapat di-schedule
+```
+
 #### **Method 2D. Advanced Nmap Subnet Scanning**
 ```bash
 # SCAN ENTIRE SUBNET - Show all hosts + ports:
@@ -6222,6 +6371,60 @@ nmap -sn 192.168.1.1-255
 # SAVE OUTPUT:
 nmap -sn -oG hosts.txt 192.168.1.0/24
 # Parse with: grep "Status: Up" hosts.txt
+```
+
+**Windows Command Prompt untuk Advanced Nmap Subnet Scanning:**
+```cmd
+# Windows Nmap syntax sama dengan Linux
+# ⬇️ DOWNLOAD NMAP: https://nmap.org/download/ (Windows installer)
+
+# Scan entire subnet dengan host enumeration:
+nmap -sn 192.168.1.0/24
+
+# Scan multiple subnets:
+nmap -sn 192.168.1.0/24 192.168.2.0/24 10.0.0.0/24
+
+# Scan IP range:
+nmap -sn 192.168.1.1-255
+
+# Scan non-contiguous IPs:
+nmap -sn 192.168.1.1,50,100,150 192.168.1.200-255
+
+# Save output to file (Nmap format):
+nmap -sn -oN hosts.txt 192.168.1.0/24
+
+# Save output to file (Grepable format - easy to parse):
+nmap -sn -oG hosts.gnmap 192.168.1.0/24
+
+# Save output to XML (for further analysis):
+nmap -sn -oX hosts.xml 192.168.1.0/24
+
+# Save in ALL formats:
+nmap -sn -oA hosts 192.168.1.0/24
+# Creates: hosts.nmap, hosts.gnmap, hosts.xml
+
+# Parse hasil grepable di Windows Command Prompt:
+# Extract only "Up" hosts:
+findstr "Status: Up" hosts.gnmap > active_hosts.txt
+
+# Parse dengan PowerShell lebih mudah:
+$results = Get-Content hosts.gnmap | Where-Object {$_ -match "Status: Up"}
+$results | ForEach-Object {
+    $ip = [regex]::Match($_, '\d+\.\d+\.\d+\.\d+').Value
+    Write-Output "Active: $ip"
+}
+
+# Live scan dengan verbose output:
+nmap -sn -v 192.168.1.0/24
+
+# Aggressive scan dengan service detection:
+nmap -sn -sV --script smb-os-discovery 192.168.1.0/24
+
+KEUNTUNGAN WINDOWS NMAP:
+✓ Cross-platform syntax (sama di Windows/Linux)
+✓ Nmap installer tersedia untuk Windows
+✓ Output formats memudahkan post-processing
+✓ Dapat disimpan untuk dianalisa lebih lanjut
 ```
 
 #### **Method 2E. Masscan (Ultra-Fast Port Scanner)**
@@ -6254,6 +6457,71 @@ KEUNTUNGAN:
 ✓ Can scan entire internet in hours
 ✓ Minimal network overhead
 ✓ Great untuk large networks
+```
+
+**Windows Command Prompt untuk Masscan:**
+```cmd
+# Windows Masscan installation:
+# ⬇️ DOWNLOAD: https://github.com/robertdavidgraham/masscan/releases (Windows binary)
+# Or: choco install masscan (if using Chocolatey package manager)
+
+# Scan all ports (super fast):
+masscan 192.168.1.0/24 -p0-65535
+
+# Scan specific ports:
+masscan 192.168.1.0/24 -p80,443,22,3306,5432
+
+# Scan with rate limiting:
+masscan 192.168.1.0/24 -p80 --rate=1000000
+
+# Scan all ports dengan aggressive rate:
+masscan 192.168.1.0/24 -p1-65535 --rate=10000
+
+# Save results to file:
+masscan 192.168.1.0/24 -p0-65535 -oG results.txt
+
+# Common services quick scan (Windows):
+masscan 192.168.1.0/24 -p22,80,135,139,443,445,3306,3389,8080
+
+# Windows equivalent without Masscan (slower tapi native):
+# Using netstat + for loop (scan localhost only):
+netstat -an | findstr LISTENING
+
+# If you want to scan remote machines from Windows without Masscan:
+# Use Test-NetConnection PowerShell cmdlet:
+$subnet = "192.168.1"
+foreach($i in 1..254) {
+    $ip = "$subnet.$i"
+    foreach($port in 22,80,443,3306,3389) {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $asyncConnect = $tcpClient.BeginConnect($ip, $port, $null, $null)
+        $asyncConnect.AsyncWaitHandle.WaitOne(500) | Out-Null
+        if($tcpClient.Connected) {
+            Write-Output "$ip : Port $port is OPEN"
+        }
+        $tcpClient.Close()
+    }
+}
+
+# Or simpler with Test-NetConnection (PowerShell 5.0+):
+$subnet = "192.168.1"
+foreach($i in 1..254) {
+    $ip = "$subnet.$i"
+    if(Test-Connection $ip -Count 1 -Quiet) {
+        foreach($port in 22,80,443,3306) {
+            $result = Test-NetConnection -ComputerName $ip -Port $port -WarningAction SilentlyContinue
+            if($result.TcpTestSucceeded) {
+                Write-Output "$ip : Port $port is OPEN"
+            }
+        }
+    }
+}
+
+KEUNTUNGAN WINDOWS MASSCAN:
+✓ Fastest option untuk scanning large networks
+✓ Cross-platform (jika installed)
+✓ PowerShell alternative tanpa tools tambahan
+✓ Multi-port scanning capability
 ```
 
 #### **Method 2F. Angry IP Scanner (GUI-based)**
@@ -6376,6 +6644,61 @@ KEUNTUNGAN:
 ✓ Identify services & versions
 ✓ Detect OS
 ✓ More detailed than discovery scan
+```
+
+**Windows Command Prompt untuk Basic Port Scanning:**
+```cmd
+# Windows Nmap syntax sama dengan Linux (cross-platform)
+# ⬇️ DOWNLOAD NMAP: https://nmap.org/download/ (Windows installer)
+
+# Basic port scan:
+nmap 192.168.1.1
+
+# Scan all ports:
+nmap -p- 192.168.1.1
+
+# Scan dengan service detection:
+nmap -sV 192.168.1.1
+
+# OS Detection:
+nmap -O 192.168.1.1
+
+# Aggressive scan (semua info):
+nmap -A 192.168.1.1
+
+# Windows built-in alternative (tanpa Nmap):
+# Check local listening ports:
+netstat -ano
+
+# Or dengan PowerShell:
+Get-NetTCPConnection -State Listen | Select-Object LocalAddress, LocalPort, OwningProcess
+
+# For remote host port scanning di Windows:
+# Method 1: Test-NetConnection (PowerShell):
+Test-NetConnection -ComputerName 192.168.1.1 -Port 80
+
+# Method 2: Telnet (if enabled):
+telnet 192.168.1.1 80
+
+# Method 3: Multi-port scan dengan PowerShell:
+$ports = 22,80,443,3306,3389
+foreach($port in $ports) {
+    $tcpClient = New-Object System.Net.Sockets.TcpClient
+    $asyncConnect = $tcpClient.BeginConnect("192.168.1.1", $port, $null, $null)
+    $asyncConnect.AsyncWaitHandle.WaitOne(500) | Out-Null
+    if($tcpClient.Connected) {
+        Write-Output "Port $port is OPEN"
+    } else {
+        Write-Output "Port $port is CLOSED"
+    }
+    $tcpClient.Close()
+}
+
+KEUNTUNGAN WINDOWS:
+✓ Nmap = same cross-platform experience
+✓ netstat = built-in untuk localhost
+✓ PowerShell = powerful multi-port scanning
+✓ Test-NetConnection = simple & reliable
 ```
 
 #### **4B. Advanced Nmap Port Scanning Techniques**
@@ -6559,6 +6882,65 @@ OUTPUT EXAMPLE:
   │  ├─ CVE-2021-41773 (path traversal, CVSS: 7.5)
   │  └─ CVE-2021-42013 (RCE, CVSS: 8.6)
   ├─ Recommendation: Upgrade to 2.4.50+ (patched)
+```
+
+**Windows Command Prompt untuk Service Vulnerability Assessment:**
+```cmd
+# Windows Nmap vulnerability scanning (syntax sama dengan Linux)
+# ⬇️ DOWNLOAD NMAP: https://nmap.org/download/ (Windows installer)
+
+# Basic vulnerability scan:
+nmap --script vuln 192.168.1.1
+
+# SMB vulnerability check (Windows servers):
+nmap --script smb-vuln-ms17-010 192.168.1.1
+nmap --script smb-vuln* -p 445 192.168.1.1
+
+# SSH vulnerability check:
+nmap -p 22 --script ssh-hostkey,ssh-auth-methods 192.168.1.1
+
+# HTTP vulnerabilities:
+nmap -p 80,443 --script http-vuln-cve* 192.168.1.1
+
+# Comprehensive service detection + vulnerability:
+nmap -A --script vuln --script-args vulns.mincvss=5.0 192.168.1.1
+
+# Default script library:
+nmap -sV --script default 192.168.1.1
+
+# Save vulnerability results:
+nmap --script vuln -oX vuln_report.xml 192.168.1.1
+
+# Filter high severity CVEs only:
+nmap -A --script vuln --script-args vulns.mincvss=7.0 -p- 192.168.1.1
+
+# Windows alternative for vulnerability info (PowerShell):
+# Get installed software versions (untuk offline analysis):
+Get-WmiObject -Class Win32_Product | Select-Object Name, Version | Export-Csv software.csv
+
+# Check for known vulnerable services:
+Get-Service | Where-Object {$_.Status -eq 'Running'} | Select-Object DisplayName, Name
+
+# Get process listening ports dengan version info:
+netstat -ano | Select-String "LISTENING"
+# Then lookup processes dengan Task Manager atau:
+tasklist /v | findstr "LISTENING_PROCESS_ID"
+
+# Advanced: Get service versions (Windows):
+$services = Get-WmiObject Win32_Service | Where-Object {$_.State -eq 'Running'}
+foreach($svc in $services) {
+    $path = $svc.PathName
+    if(Test-Path $path) {
+        $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($path)
+        Write-Output "$($svc.Name): $($version.FileVersion)"
+    }
+}
+
+KEUNTUNGAN WINDOWS:
+✓ Nmap vulnerability scripts = cross-platform
+✓ PowerShell untuk local machine vulnerability check
+✓ WMI queries untuk installed applications audit
+✓ netstat untuk local port enumeration
 ```
 
 **STEP 6: Packet Capture & Analysis (Wireshark)**
