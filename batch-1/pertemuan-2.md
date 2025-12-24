@@ -1,5 +1,7 @@
 # Keamanan Jaringan (Network Security) dan Kriptografi
 
+![alt text](https://www.extnoc.com/learn/wp-content/uploads/2022/02/Network-Security.jpg)
+
 ## 1.1 Konsep Keamanan Jaringan
 
 Dalam era digital modern dengan perkembangan teknologi informasi yang sangat cepat dan meningkatnya ketergantungan organisasi pada jaringan komputer, keamanan jaringan menjadi suatu isu yang sangat penting dan kritis. Keamanan jaringan mencakup keamanan fisik infrastruktur, keamanan komunikasi data, dan keamanan terhadap akses yang tidak berhak. Perlu kita sadari bahwa untuk mencapai keamanan jaringan yang sempurna adalah suatu hal yang sangat mustahil, namun yang bisa kita lakukan adalah untuk meminimalkan risiko dan mengurangi gangguan keamanan tersebut.
@@ -2464,6 +2466,8 @@ Julius Caesar, seorang kaisar terkenal Romawi yang menaklukkan banyak bangsa di 
 ## 4.1 Model OSI (Open Systems Interconnection)
 
 ### Definisi Model OSI
+
+![alt text](https://assets.bytebytego.com/diagrams/0049-top-network-security-cheatsheet.png)
 
 Model OSI (Open Systems Interconnection) adalah model referensi yang menggambarkan bagaimana data dikomunikasikan antar sistem dalam jaringan komputer. Model ini terdiri dari 7 lapisan (layer) yang masing-masing memiliki fungsi spesifik dalam proses komunikasi data. Model OSI dikembangkan oleh International Organization for Standardization (ISO) untuk memastikan bahwa produk jaringan dari berbagai vendor dapat saling berinteraksi.
 
