@@ -1452,6 +1452,138 @@ Adapun dasar-dasar dari perancangan sistem yang aman adalah:
 - Mencegah hilangnya data
 - Mencegah masuknya penyusup
 
+---
+
+#### **BEST PRACTICE RANCANGAN SISTEM YANG AMAN**
+
+**Prinsip Fundamental (Saltzer & Schroeder):**
+
+```
+1. LEAST PRIVILEGE
+   └─ User hanya dapat akses resource minimal yang diperlukan
+
+2. DEFENSE IN DEPTH
+   └─ Multiple layers of security (tidak tergantung satu layer)
+
+3. FAIL SECURE
+   └─ Jika sistem gagal, default adalah DENY (bukan ALLOW)
+
+4. SEPARATION OF DUTIES
+   └─ Task sensitive dipecah ke multiple persons
+
+5. COMPLETE MEDIATION
+   └─ Setiap akses HARUS melewati security check
+
+6. OPEN DESIGN
+   └─ Security bukan berdasarkan "secret" tapi design yang baik
+
+7. PSYCHOLOGICAL ACCEPTABILITY
+   └─ Security mechanism harus user-friendly
+```
+
+---
+
+#### **CONTOH KASUS 1: USER ACCESS CONTROL**
+
+**❌ PENERAPAN SALAH (Anti-Pattern):**
+```
+Skenario: Administrator di perusahaan
+
+└─ Admin Account: admin (password: admin123)
+   ├─ Permissions: FULL ACCESS ke SEMUA server
+   ├─ Tidak ada password expiry
+   ├─ Password ditulis di sticky note
+   ├─ Login via unencrypted Telnet ← VERY DANGEROUS!
+   └─ Tidak ada audit log
+
+HASIL:
+✗ Jika password bocor → attacker punya FULL ACCESS
+✗ Tidak bisa trace siapa yang melakukan apa
+✗ Password tidak berubah → compromised credential valid lama
+✗ Cleartext communication → bisa di-sniff
+```
+
+**✅ PENERAPAN BENAR (Best Practice):**
+```
+Skenario: Implementasi least privilege
+
+└─ User Account: john
+   ├─ Permissions: HANYA akses file sendiri
+   ├─ Password: Strong (12+ chars, mix case/number/symbol)
+   ├─ Password Expiry: 90 hari (forced change)
+   ├─ MFA Enabled: Google Authenticator (2FA)
+   ├─ Sudo account: john_sudo (terpisah)
+   │  ├─ Password: Berbeda dengan main account
+   │  ├─ Permissions: ONLY specific commands (mysql restart, etc)
+   │  ├─ Session timeout: 5 minutes
+   │  └─ Audit: ALL commands logged
+   └─ Login methods:
+      ├─ SSH only (encrypted)
+      ├─ SSH key-based (lebih aman dari password)
+      ├─ VPN required untuk remote access
+      └─ Audit log: SEMUA login tracked
+
+HASIL:
+✓ User terbatas akses → minimal damage jika compromised
+✓ Admin account terpisah → john tidak punya admin privilege
+✓ Sudo dengan specific commands → tidak full admin power
+✓ Password expiry → old credential tidak bisa dipakai lama
+✓ MFA → even jika password stolen, attacker masih blocked
+✓ SSH key → lebih sulit di-crack dibanding password
+✓ Audit log → bisa track siapa yang lakukan apa
+```
+
+---
+
+#### **CONTOH KASUS 2: DATA BACKUP & RECOVERY**
+
+**❌ PENERAPAN SALAH (Disaster):**
+```
+Skenario: Backup strategy di startup
+
+└─ Backup Method:
+   ├─ Manual backup kadang-kadang (tidak scheduled)
+   ├─ Backup ke external HDD (disimpan di meja)
+   ├─ Tidak ada encryption pada backup file
+   ├─ Backup tested: TIDAK PERNAH ← CRITICAL!
+   └─ Location: 1 physical location (di kantor)
+
+RISIKO:
+✗ Ransomware attack: "Sorry, no backup available"
+✗ Backup HDD stolen: Data tidak ter-encrypt, total loss
+✗ Backup never tested: Saat diperlukan CORRUPT (unusable)
+✗ Fire/flood: Backup hilang bersamaan dengan production
+```
+
+**✅ PENERAPAN BENAR (3-2-1 Rule):**
+```
+Skenario: Enterprise backup strategy
+
+└─ Backup Method:
+   ├─ Automated daily backup (schedule: 2 AM UTC)
+   ├─ Encryption: AES-256 on all backups
+   ├─ Retention:
+   │  ├─ Daily: Simpan 7 hari terakhir
+   │  ├─ Weekly: Simpan 4 minggu terakhir
+   │  └─ Monthly: Simpan 12 bulan terakhir
+   ├─ 3-2-1 Rule:
+   │  ├─ 3 copies: Production + 2 Backups
+   │  ├─ 2 media: 1 disk (fast restore) + 1 tape (archive)
+   │  └─ 1 offsite: Remote location atau cloud
+   └─ Testing:
+      ├─ Monthly: Test restore dari backup
+      └─ Quarterly: Full disaster recovery drill
+
+HASIL:
+✓ Ransomware attack: Restore dari backup dalam 5 menit
+✓ Tested regularly: Know backup benar-benar berfungsi
+✓ Offsite: Fire tidak musnahkan semua copies
+✓ Encryption: Backup theft tidak berarti data theft
+✓ RPO < 24 jam, RTO < 4 hours
+```
+
+---
+
 ## 2.5 Lapisan Keamanan
 
 Keamanan jaringan dibangun melalui beberapa lapisan pertahanan yang bekerja secara berlapis (defense in depth). Setiap lapisan memiliki peran penting untuk mencegah, mendeteksi, dan merespons ancaman keamanan. Berikut adalah lapisan-lapisan keamanan jaringan yang komprehensif:
@@ -1465,6 +1597,67 @@ Keamanan jaringan dibangun melalui beberapa lapisan pertahanan yang bekerja seca
 - **Posture Assessment**: Memeriksa apakah device memiliki security patches, antivirus, firewall yang updated
 - **Policy Enforcement**: Memberlakukan kebijakan keamanan sebelum device mendapatkan akses penuh ke jaringan
 - **Access Control**: Mengizinkan atau menolak koneksi device berdasarkan compliance status
+
+#### **CONTOH PENERAPAN SALAH vs BENAR**
+
+**❌ PENERAPAN SALAH (Open Network):**
+```
+Skenario: Perusahaan tanpa NAC
+
+└─ Network Access:
+   ├─ Open WiFi: Tidak ada password
+   ├─ Device connection: Otomatis connect
+   ├─ Posture check: TIDAK ADA
+   ├─ Antivirus status: Tidak dicek
+   ├─ OS patches: Tidak dicek
+   ├─ Firewall enabled: Tidak dicek
+   └─ Access: Semua devices dapat full access
+
+RISIKO:
+✗ Infected laptop masuk jaringan tanpa terdeteksi
+✗ Malware dapat spread ke internal network
+✗ Guest/attacker dapat connect ke WiFi
+✗ IoT devices tanpa security connect freely
+✗ BYOD devices dengan outdated OS masuk
+```
+
+**✅ PENERAPAN BENAR (NAC dengan Posture Check):**
+```
+Skenario: Implementasi Cisco ISE NAC
+
+└─ Authentication Methods:
+   ├─ Managed devices: 802.1X (certificate-based)
+   ├─ Guest devices: Sponsored access (manual approval)
+   ├─ BYOD: Mobile Device Management (MDM) integration
+   └─ IoT devices: Device certificate atau shared secret
+
+└─ Posture Compliance Check:
+   ├─ OS patches: Windows updates REQUIRED
+   ├─ Antivirus: McAfee/Symantec MUST be installed
+   ├─ Firewall: Windows Defender Firewall MUST be ON
+   ├─ Disk encryption: BitLocker MUST be enabled
+   ├─ Password policy: Min 8 chars, expiry 90 days
+   └─ Mobile: Screen lock REQUIRED, recent patches
+
+└─ Access Tiers (based on compliance):
+   ├─ TIER 1 - FULL COMPLIANT (Green):
+   │  └─ Full network access + all resources
+   │
+   ├─ TIER 2 - NON-COMPLIANT (Yellow/Quarantine):
+   │  ├─ Limited to remediation server
+   │  ├─ Auto download patches, update antivirus
+   │  └─ Retry NAC recheck every 1 hour
+   │
+   └─ TIER 3 - FAILED (Red/Blocked):
+      ├─ BLOCKED from network
+      └─ Manual approval needed
+
+HASIL:
+✓ Infected devices AUTOMATICALLY quarantined
+✓ Non-compliant devices can't access sensitive data
+✓ Remediation automated (patches auto-applied)
+✓ Inventory of all devices dapat ditrack
+```
 
 **Implementasi NAC:**
 
@@ -1510,6 +1703,51 @@ Device ingin connect ke jaringan:
 ### 2.5.1 Access Control Lists (ACL)
 
 **Access Control Lists (ACL)** adalah aturan-aturan yang mendefinisikan user atau device mana yang dapat mengakses resource tertentu dalam jaringan. ACL adalah mekanisme fundamental untuk mengimplementasikan prinsip "least privilege" (akses minimal yang diperlukan).
+
+#### **CONTOH PENERAPAN SALAH vs BENAR**
+
+**❌ PENERAPAN SALAH (Implicit Allow):**
+```
+Route ACL Configuration:
+
+  permit ip any any     ← ALLOW EVERYTHING!
+  deny ip 10.0.0.0 0.0.0.255 192.168.0.0 0.0.0.255
+
+Problem:
+✗ Default adalah ALLOW (default open)
+✗ Hanya block specific traffic (reactive approach)
+✗ New attack vectors tidak tercakup
+✗ Jika rule list long, attacker bisa bypass
+✗ Sulit untuk maintain dan audit
+```
+
+**✅ PENERAPAN BENAR (Explicit Allow / Zero Trust):**
+```
+Route ACL Configuration:
+
+  ! HTTP access (port 80)
+  permit tcp 192.168.1.0 0.0.0.255 10.0.0.0 0.0.0.255 eq 80
+  permit tcp 192.168.2.0 0.0.0.255 10.0.0.0 0.0.0.255 eq 80
+  
+  ! HTTPS access (port 443)
+  permit tcp 192.168.1.0 0.0.0.255 10.0.0.0 0.0.0.255 eq 443
+  permit tcp 192.168.2.0 0.0.0.255 10.0.0.0 0.0.0.255 eq 443
+  
+  ! SSH access (restricted IPs only)
+  permit tcp 10.1.1.0 0.0.0.255 10.0.0.0 0.0.0.255 eq 22
+  
+  ! Database access (internal only)
+  permit tcp 10.2.0.0 0.0.0.255 10.0.3.0 0.0.0.255 eq 3306
+  
+  ! DENY EVERYTHING ELSE
+  deny ip any any       ← DEFAULT DENY (secure default)
+
+Benefit:
+✓ Explicit allow (proactive approach)
+✓ "Deny by default, allow on need-to-know basis"
+✓ More secure dan maintainable
+✓ Principle of least privilege enforced
+```
 
 **Jenis-jenis ACL:**
 
@@ -1571,6 +1809,58 @@ Internet
 ### 2.5.2 Network Segmentation & VLAN
 
 **Network Segmentation** adalah proses membagi jaringan menjadi beberapa sub-network (segments) yang lebih kecil untuk meningkatkan security dan performance.
+
+#### **CONTOH PENERAPAN SALAH vs BENAR**
+
+**❌ PENERAPAN SALAH (Flat Network):**
+```
+Single Network: 192.168.0.0/16
+
+├─ Server room (Database, Web, File)
+├─ Desktops (Sales, IT, Finance)
+├─ Printers
+├─ Security cameras
+├─ Guest WiFi
+└─ IoT devices (coffee machine, etc)
+
+RISIKO:
+✗ Laptop dengan malware dapat spread ke DB server
+✗ Guest dapat access Finance data
+✗ Lateral movement: attacker can go anywhere
+✗ Breach di satu segment = breach di semua
+✗ DDoS dari IoT devices affects semua users
+```
+
+**✅ PENERAPAN BENAR (Multiple VLANs):**
+```
+Core Switch dengan VLAN:
+
+├─ VLAN 10 (Management): 10.1.0.0/24
+│  └─ Access: IT team only
+├─ VLAN 20 (Web Tier): 10.2.0.0/24
+│  └─ Rules: Only HTTP/HTTPS dari public internet
+├─ VLAN 30 (Database): 10.3.0.0/24
+│  └─ Rules: Only from Web tier (10.2.0.0/24)
+├─ VLAN 40 (Employee): 10.4.0.0/24
+│  └─ Rules: Internet access + File server
+├─ VLAN 50 (IoT): 10.5.0.0/24
+│  └─ Rules: Isolated, limited functions only
+└─ VLAN 99 (Guest): 10.99.0.0/24
+   └─ Rules: Internet only, NO internal access
+
+InterVLAN Rules (Firewall):
+
+  10.2.0.0/24 (Web)  → 10.3.0.0/24 (DB)     : ALLOW port 3306
+  10.4.0.0/24 (Emp)  → 10.2.0.0/24 (Web)    : ALLOW port 80/443
+  10.99.0.0/24 (Guest) → 0.0.0.0/0 (Internet): ALLOW
+  All others                                 : DENY
+
+BENEFIT:
+✓ Malware in Employee VLAN cannot reach Database
+✓ Guest WiFi breach doesn't affect internal systems
+✓ Lateral movement extremely difficult
+✓ Each VLAN can have different security policy
+```
 
 **Benefits dari Network Segmentation:**
 - **Reduced Attack Surface**: Jika satu segment terkompromisi, attacker tidak bisa langsung akses segment lain
@@ -1658,6 +1948,74 @@ Tagged dengan VLAN ID untuk identifikasi
 
 ### 2.5.3 Lapisan Fisik
 
+#### **CONTOH PENERAPAN SALAH vs BENAR**
+
+**❌ PENERAPAN SALAH (No Physical Security):**
+```
+Server Room:
+
+├─ Pintu: Tidak terkunci (open access)
+├─ Siapa saja bisa masuk: Maintenance, guest, cleaning
+├─ Servers: Tidak dikunci
+├─ Hard disk: Dapat dilepas dari server
+├─ BIOS: Tidak password protected
+├─ USB ports: Dapat digunakan (USB drop attack)
+├─ Keyboards: Anyone dapat gunakan
+└─ Access log: TIDAK ADA
+
+RISIKO:
+✗ Physical theft: Laptop/hard disk dapat dicuri
+✗ Malware injection: Tanam malware di USB
+✗ BIOS tampering: Modify BIOS untuk rootkit
+✗ Cold boot attack: Copy memory dari RAM
+✗ Credential access: Lihat sticky notes dengan password
+```
+
+**✅ PENERAPAN BENAR (Physical Security):**
+```
+Access Control:
+
+├─ Door: Card reader + PIN (multi-factor)
+├─ Biometric: Fingerprint atau face recognition
+├─ Log: All access logged + timestamped
+├─ Camera: CCTV 24/7 (recordings 30 days)
+├─ Escort: Visitors must be escorted
+└─ Badge: ID badges required
+
+Server Room Security:
+
+├─ Environmental:
+│  ├─ Temperature monitoring
+│  ├─ Smoke detection + fire suppression
+│  └─ Water leak detection
+├─ Physical protection:
+│  ├─ Server racks: Locked (key access)
+│  ├─ Hard drives: Encrypted (AES-256)
+│  ├─ BIOS: Password protected
+│  ├─ Boot password: Required
+│  ├─ USB ports: Disabled in BIOS
+│  └─ Network cables: Labeled + documented
+└─ Backups:
+   ├─ Encrypted (AES-256)
+   ├─ Locked cabinet
+   └─ Offsite copies in secure vault
+
+Hardware Decommissioning:
+
+├─ Hard drive: DBAN (Darik's Boot and Nuke) wipe
+├─ Verification: No data recoverable
+├─ Certificate: Issued for audit trail
+└─ Tracking: Asset inventory verified
+
+BENEFIT:
+✓ Physical theft detected immediately
+✓ Unauthorized access prevented
+✓ BIOS rootkit prevented
+✓ Cold boot attack prevented
+✓ Malware USB injection prevented
+✓ Accountability: Know who accessed what
+```
+
 **Membatasi akses fisik ke mesin:**
 - Akses masuk ke ruangan komputer
 - Penguncian komputer secara hardware
@@ -1679,6 +2037,74 @@ Tagged dengan VLAN ID untuk identifikasi
 
 ### 2.5.4 Keamanan Local
 
+Berkaitan dengan user dan hak-haknya, prinsip least privilege diterapkan pada level sistem operasi.
+
+#### **CONTOH PENERAPAN SALAH vs BENAR**
+
+**❌ PENERAPAN SALAH (All Admin Privileges):**
+```
+User Account Management:
+
+└─ User Accounts:
+   ├─ admin: sudoers ALL=(ALL) NOPASSWD:ALL
+   ├─ john: sudoers ALL=(ALL) NOPASSWD:ALL
+   ├─ sarah: sudoers ALL=(ALL) NOPASSWD:ALL
+   └─ Semua user bisa run everything tanpa password
+
+File Permissions:
+   ├─ /etc/sudoers: chmod 666 (world readable!)
+   ├─ Configuration files: chmod 644 (world readable)
+   └─ Database files: chmod 777 (everyone can access)
+
+Login Policy:
+   ├─ Password policy: TIDAK ADA
+   ├─ Failed login limit: TIDAK ADA
+   ├─ Account lockout: TIDAK ADA
+   └─ Password aging: TIDAK ADA
+
+RISIKO:
+✗ User mistake → unlimited damage (run rm -rf /)
+✗ Malware dalam user account → same privilege as admin
+✗ Privilege escalation → attacker easily become admin
+✗ No accountability → can't trace who did what
+```
+
+**✅ PENERAPAN BENAR (Role-Based Access Control):**
+```
+User Account Management:
+
+└─ User Accounts:
+   ├─ admin: sudoers /usr/sbin/restart-apache2
+   │  └─ Only specific commands, require password
+   ├─ john: sudoers /usr/bin/systemctl,/usr/sbin/iptables
+   │  └─ Limited to needed commands for their job
+   ├─ sarah: (no sudo) - regular user
+   │  └─ Only access her own files
+   └─ Database user: ONLY access database tools
+      └─ Cannot run shell commands
+
+File Permissions:
+   ├─ /etc/sudoers: chmod 440 (root only)
+   ├─ Configuration files: chmod 640 (owner:group only)
+   ├─ Database files: chmod 600 (owner only)
+   └─ Executable scripts: chmod 750 (no world access)
+
+Login Policy:
+   ├─ Password policy: Min 12 chars, complexity
+   ├─ Failed login limit: 3 failures → account locked
+   ├─ Account lockout: 30 minutes lockout
+   ├─ Password aging: Expire every 90 days
+   ├─ Sudo session: Timeout after 5 minutes
+   └─ Session logging: All sudo commands logged
+
+BENEFIT:
+✓ User mistake → limited to their own files
+✓ Malware in user account → cannot become admin
+✓ Privilege escalation prevented
+✓ All actions logged → full accountability
+✓ Job separation → sales cannot access finance data
+```
+
 Berkaitan dengan user dan hak-haknya:
 
 - Beri mereka fasilitas minimal yang diperlukan.
@@ -1686,6 +2112,91 @@ Berkaitan dengan user dan hak-haknya:
 - Pastikan dan hapus rekening mereka ketika mereka tidak lagi membutuhkan akses.
 
 ### 2.5.5 Keamanan Root
+
+#### **CONTOH PENERAPAN SALAH vs BENAR**
+
+**❌ PENERAPAN SALAH (Unrestricted Root Usage):**
+```
+Root Access:
+
+└─ Root Usage:
+   ├─ Always login as root directly
+   ├─ Telnet/SSH login as root (cleartext/unencrypted)
+   ├─ Run all commands as root (even simple ones)
+   ├─ No audit logging (audit disabled)
+   ├─ No session recording
+   ├─ PATH includes current directory (.)
+   └─ No timeout (session stays open forever)
+
+Example of Dangerous Commands:
+   ├─ rm -rf * (delete everything)
+   ├─ kill -9 $(lsof -t /home) (kill processes carelessly)
+   ├─ chmod 777 /etc/passwd (make password file world-writable)
+   └─ BIOS modifications without logging
+
+RISIKO:
+✗ Accidental system damage: rm -rf / delete entire OS
+✗ Typos in commands → catastrophic consequences
+✗ Malware in root shell → full system compromise
+✗ No audit trail → cannot trace what happened
+✗ Password file world-writable → anyone can become root
+```
+
+**✅ PENERAPAN BENAR (Restricted Root Usage with sudo):**
+```
+Root Access:
+
+└─ Root Usage Best Practices:
+   ├─ Never directly login as root
+   ├─ Always use regular account + sudo
+   ├─ SSH login disabled for root
+   ├─ Sudo session logging enabled
+   └─ Session recording (script/asciinema)
+
+Sudo Configuration (/etc/sudoers):
+
+   # apache group can restart apache only
+   %apache ALL=(ALL) /usr/sbin/systemctl restart apache2
+
+   # database group can restart mysql only
+   %database ALL=(ALL) /usr/sbin/systemctl restart mysql
+
+   # backups user can run backup script only
+   backup ALL=(ALL) /usr/local/bin/backup.sh
+
+   # ALL sudo commands require password
+   Defaults use_pty
+   Defaults log_output
+   Defaults logfile="/var/log/sudo.log"
+
+Session Timeout:
+   ├─ Sudo timeout: 5 minutes
+   ├─ Session timeout: 10 minutes idle
+   └─ Re-authenticate: Requires password again
+
+Command Verification (before executing):
+   # First check what will be deleted:
+   $ ls foo*.bak
+   
+   # Then safely delete:
+   $ rm foo*.bak
+
+Audit Logging:
+   └─ All sudo commands logged:
+      ```
+      [2024-01-15 10:32:15] john : TTY=pts/0 ; PWD=/home/john ;
+                           USER=root ; COMMAND=/usr/sbin/systemctl restart apache2
+      ```
+
+BENEFIT:
+✓ Accidental damage prevented (regular account sandbox)
+✓ Typo consequences limited (only allowed commands)
+✓ Malware containment (cannot escalate to root)
+✓ Full audit trail (know exactly what admin did)
+✓ Command accountability (who, what, when, where)
+```
+
+**Best Practices untuk Root Security:**
 
 - Ketika melakukan perintah yang kompleks, cobalah dalam cara yang tidak merusak dulu, terutama perintah yang menggunakan globbing. Contoh, anda ingin melakukan `rm foo*.bak`, pertama coba dulu: `ls foo*.bak` dan pastikan anda ingin menghapus file-file yang anda pikirkan.
 
