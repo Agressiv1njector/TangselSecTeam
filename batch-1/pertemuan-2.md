@@ -720,6 +720,9 @@ Attack Condition:
 - **DDOS**: Jenis serangan Denial of Service (DOS) yang menggunakan banyak host (baik itu menggunakan komputer yang didedikasikan untuk melakukan penyerangan atau komputer yang "dipaksa" menjadi zombie) untuk menyerang satu buah host target dalam sebuah jaringan.
 
 **Mekanisme DDOS Attack:**
+
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/2.2%20network%20security.png)
+
 ```
                        ┌──────────────────────┐
                        │ Attacker / Botmaster │
@@ -753,7 +756,7 @@ Interception adalah serangan jenis ini ditujukan terhadap aspek privacy dan auth
 
 **Ilustrasi Interception Attack:**
 
-![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/2.2%20network%20security.png)
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec2-3.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -817,7 +820,7 @@ Modification adalah serangan jenis ini ditujukan terhadap aspek privacy, authent
 
 **Ilustrasi Modification Attack:**
 
-![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec2-3.png)
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec-2-4.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -876,7 +879,7 @@ Fabrication adalah seseorang yang tidak memiliki hak akses, memasukkan suatu obj
 
 **Ilustrasi Fabrication Attack:**
 
-![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec-2-4.png)
+![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec-2-5.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -966,8 +969,6 @@ ATTACKER SENDS FAKE EMAIL:
 - Advanced techniques dan tools
 
 **Ilustrasi APT Attack Chain:**
-
-![alt text](https://raw.githubusercontent.com/Agressiv1njector/TangselSecTeam/refs/heads/main/images/netsec-2-5.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
