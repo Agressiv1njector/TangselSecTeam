@@ -29,6 +29,16 @@
 
 ---
 
+## 🎯 PoC Cheatsheet (Proof of Concept)
+
+| Level | File | Jumlah PoC | Fokus |
+|-------|------|------------|-------|
+| 🟢 Low | [poc-level-low.md](./poc-level-low.md) | 20 PoC | IDOR, Disclosure, Cookie, Headers, Misconfiguration |
+| 🟡 Medium | [poc-level-medium.md](./poc-level-medium.md) | 25 PoC | XSS, SQLi, CSRF, SSRF, XXE, JWT, File Upload |
+| 🔴 High | [poc-level-high.md](./poc-level-high.md) | 20 PoC | RCE, Takeover, Race Condition, Attack Chain |
+
+---
+
 ## 🔧 Tools
 
 | Tool | Path | Description |
@@ -50,5 +60,6 @@
 | 🌐 A10 SSRF Deep Dive | Part 9 | Full exploit chain |
 | 🎭 Social Engineering | Part 10 | 25 phishing techniques |
 | 🏗️ A04+A05 Design+Misconfig | Part 11 | 40 CWEs + cloud/CORS/TLS |
+| 🎯 PoC Praktik | Low+Med+High | 65 PoC scenarios |
 
-**Total: 80+ tools | 160+ CWEs | 17 files | ~300KB**
+**Total: 80+ tools | 160+ CWEs | 65 PoC | 20 files | ~360KB**
